@@ -1,5 +1,6 @@
-import AppSidebar from "./sidebar/AppSidebar";
-import Sidebar from "./Sidebar";
 import DataTable from "./DataTable";
+import Filter from "./Filter";
+import Sidebar from "./Sidebar";
+import AppSidebar from "./sidebar/AppSidebar";
 
-export { AppSidebar, Sidebar, DataTable };
+export { AppSidebar, DataTable, Filter, Sidebar };
