@@ -74,7 +74,7 @@ const SidebarMenu = ({
 						"!hidden": !sidebarOpen,
 					})}
 				>
-					{t(groupName)}
+					{groupName && t(groupName)}
 				</span>
 			</h3>
 			<ul className="mt-3">

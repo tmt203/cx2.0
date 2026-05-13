@@ -157,9 +157,9 @@ const Sidebar = ({ variant = "v2", menu }: SidebarProps) => {
 
 								{/* Area: Tenant SelectBox */}
 								<TenantDropdownMenu
-									options={[]}
+									options={[{ label: "TEL4VN", value: "tel4vn" }]}
 									isLoading={false}
-									selectedOption={{ label: "", value: "" }}
+									selectedOption={{ label: "TEL4VN", value: "tel4vn" }}
 									buttonLabel={t("tenant_service.add_tenant")}
 									superAdmin={false}
 									onSearch={() => {}}
@@ -179,7 +179,7 @@ const Sidebar = ({ variant = "v2", menu }: SidebarProps) => {
 							"justify-center px-0 group-hover:justify-between group-hover:sm:!px-2": !sidebarOpen,
 						})}
 					>
-						<ProfileDropdownMenu name={""} sidebarOpen={sidebarOpen} actions={[]} />
+						<ProfileDropdownMenu name={"Admin Demo"} sidebarOpen={sidebarOpen} actions={[]} />
 
 						{/* Notification */}
 						<div
@@ -196,21 +196,23 @@ const Sidebar = ({ variant = "v2", menu }: SidebarProps) => {
 					</div>
 
 					{/* Pages group */}
-					<div className="space-y-3">
-						{menu.map((item, index) => (
-							<SidebarMenu
-								key={`${item.groupName}-${index}`}
-								{...item}
-								className="[&_.group-name-header]:group-hover:!block [&_.group-name-icon]:group-hover:!hidden [&_.menu-chevron-down-icon]:group-hover:!block [&_.menu-title]:group-hover:!block [&_.sub-menu-content]:group-hover:!block"
-								sidebarOpen={sidebarOpen}
-								expandOnly={expandOnly}
-								onToggleSidebar={handleShowSidebar}
-							/>
-						))}
+					<div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface -mr-5 max-h-[calc(100vh-230px)] flex-1 overflow-y-auto">
+						<div className="space-y-3 pr-5">
+							{menu.map((item, index) => (
+								<SidebarMenu
+									key={`${item.groupName}-${index}`}
+									{...item}
+									className="[&_.group-name-header]:group-hover:!block [&_.group-name-icon]:group-hover:!hidden [&_.menu-chevron-down-icon]:group-hover:!block [&_.menu-title]:group-hover:!block [&_.sub-menu-content]:group-hover:!block"
+									sidebarOpen={sidebarOpen}
+									expandOnly={expandOnly}
+									onToggleSidebar={handleShowSidebar}
+								/>
+							))}
+						</div>
 					</div>
 
 					{/* Actions group */}
-					<div className="flex h-full flex-col items-start justify-end">
+					<div className="flex h-fit flex-col items-start justify-end">
 						<ul className="w-full">
 							<ThemeToggle sidebarOpen={sidebarOpen} />
 							<LanguageToggle>

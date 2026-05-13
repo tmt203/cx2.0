@@ -70,7 +70,6 @@ const AppLayoutTemplate = async ({ children }: AppLayoutTemplateProps) => {
 
 	const menu: SidebarMenu[] = [
 		{
-			groupName: "sidebar.dashboard",
 			groups: [
 				{
 					icon: "CircleGauge",
@@ -81,18 +80,41 @@ const AppLayoutTemplate = async ({ children }: AppLayoutTemplateProps) => {
 				},
 				{
 					icon: "ChartNoAxesColumn",
-					id: "statistics",
-					groupId: "statistics",
-					label: "sidebar.statistics",
-					href: "/report",
+					id: "workspace",
+					groupId: "workspace",
+					label: "sidebar.workspace",
+					href: "/workspace",
 				},
-			],
-		},
-		{
-			groupName: "sidebar.operation",
-			groups: [
 				{
-					icon: "BookMinus",
+					icon: "AlignStartVertical",
+					id: "campaigns",
+					groupId: "campaigns",
+					label: "sidebar.campaigns",
+					href: "/campaigns",
+				},
+				{
+					icon: "ChartArea",
+					id: "analytics",
+					groupId: "analytics",
+					label: "sidebar.analytics",
+					href: "/analytics",
+				},
+				{
+					icon: "Workflow",
+					id: "automation",
+					groupId: "automation",
+					label: "sidebar.automation",
+					href: "/automation",
+				},
+				{
+					icon: "Settings",
+					id: "settings",
+					groupId: "settings",
+					label: "sidebar.settings",
+					href: "/settings",
+				},
+				{
+					icon: "Library",
 					id: "collections",
 					groupId: "collections",
 					label: "sidebar.collections",
