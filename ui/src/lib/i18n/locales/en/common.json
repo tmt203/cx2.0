@@ -1,0 +1,140 @@
+{
+	"keyword": "Keyword",
+	"user": "User",
+	"under_construction": "This feature is under construction",
+	"title": {
+		"dashboard": "Dashboard",
+		"unit_user": "Unit & User",
+		"add_user": "Add User",
+		"edit_user": "Edit User"
+	},
+	"locale": {
+		"vi": "Vietnamese",
+		"en": "English"
+	},
+	"form": {
+		"reset": "Reset",
+		"save": "Save",
+		"update": "Update",
+		"confirm": "Confirm",
+		"cancel": "Cancel",
+		"exit": "Exit",
+		"next": "Next",
+		"prev": "Previous",
+		"add": "Add",
+		"edit": "Edit",
+		"delete": "Delete",
+		"all": "All",
+		"detail": "Detail",
+		"success": "Success",
+		"fail": "Fail",
+		"navigate": "Navigate",
+		"try_again": "Try Again",
+		"no_data": "No Data",
+		"missing_field": "Please fill in all required fields before proceeding to the next step.",
+		"delete_all": "Delete All",
+		"apply": "Apply",
+		"clear": "Clear",
+		"other_action": "Other Action",
+		"start": "Start",
+		"view_report": "Report statistics",
+		"required": "This field is required",
+		"param": "param",
+		"send": "Send"
+	},
+	"api": {
+		"get": {
+			"failed": "Failed to retrieve {data}. Please try again!"
+		},
+		"post": {
+			"failed": "Failed to post {data}. Please try again!"
+		},
+		"update": {
+			"failed": "Failed to update {data}. Please try again!",
+			"success": "Successfully updated {data}!"
+		},
+		"create": {
+			"failed": "Failed to create {data}. Please try again!",
+			"success": "Successfully created {data}!"
+		},
+		"delete": {
+			"failed": "Failed to delete {data}. Please try again!",
+			"success": "Successfully deleted {data}!"
+		},
+		"upload": {
+			"failed": "Failed to upload {data}. Please try again!",
+			"success": "Successfully uploaded {data}!"
+		},
+		"import": {
+			"failed": "Failed to import {data}. Please try again!",
+			"success": "Successfully imported {data}!"
+		},
+		"export": {
+			"failed": "Failed to export {data}. Please try again!",
+			"success": "Successfully exported {data}!"
+		},
+		"download": {
+			"failed": "Failed to download {data}. Please try again!",
+			"success": "Successfully downloaded {data}!"
+		},
+		"action": {
+			"failed": "Failed to {action} {data}. Please try again!",
+			"success": "Successfully {action} {data}!"
+		}
+	},
+	"sidebar": {
+		"export_management": "Manage Exported Files",
+		"dashboard": "Dashboard",
+		"operation": "Operation",
+		"history": "History",
+		"more": "More",
+		"customers": "Customer List",
+		"send_manual": "Send Manual",
+		"campaigns": "Campaign List",
+		"sending_history": "Sending History",
+		"user_history": "User History",
+		"statistics": "Statistics",
+		"setting": "Setting",
+		"collapse": "Collapse",
+		"expand": "Expand",
+		"language": "Language",
+		"appearance": "Appearance",
+		"service_configuration": "Service Configuration",
+		"script": "Script",
+		"brand_template": "Brand Name & Template",
+		"unit_user": "Unit & User",
+		"role": "Role",
+		"collections": "Collections"
+	},
+	"profile": {
+		"account_info": "Account Info",
+		"logout": "Logout"
+	},
+	"input": {
+		"placeholder": "Enter {data}..."
+	},
+	"common_data": {
+		"lead": "Lead",
+		"list": "Customer List",
+		"oa": "Brand Name",
+		"campaign": "Campaign",
+		"campaigns": "Campaign List",
+		"report": "Report",
+		"template": "Message Template",
+		"campaign_run_list": "Campaign Run List",
+		"campaign_name": "Campaign Name",
+		"brand_name": "Brand Name",
+		"bu": "Business Unit",
+		"zns": "ZNS (Zalo Official Account)",
+		"sms": "SMS Brandname",
+		"phone_number": "Phone number"
+	},
+	"action": {
+		"download_excel": "Download Excel file",
+		"export_excel_csv": "Export Excel/CSV file"
+	},
+	"error_message": {
+		"selected_at_least": "Please select at least one {data}",
+		"required": "This {data} field is required"
+	}
+}

@@ -1,0 +1,81 @@
+{
+	"dropzone": {
+		"description": "Kéo và Thả tệp vào đây hoặc Tải lên"
+	},
+	"input": {
+		"placeholder": "Hãy nhập {data}",
+		"search_keyword_placeholder": "Nhập từ khóa để tìm kiếm"
+	},
+	"select": {
+		"placeholder": "Hãy chọn một {data}"
+	},
+	"date_time_picker": {
+		"warning_time": "Vui lòng chọn thời gian từ {min} đến {max}",
+		"empty_date": "Vui lòng hãy chọn ngày trước"
+	},
+	"time_picker": {
+		"error_range": "Vui lòng chọn giờ bắt đầu bé hơn giờ kết thúc"
+	},
+	"table": {
+		"no": "STT",
+		"action": "Thao tác",
+		"set_size_column": "Đặt kích thước cột",
+		"line_break": "Xuống dòng văn bản",
+		"text-ellipsis": "Ẩn bớt văn bản",
+		"show_hide_column": "Hiện/Ẩn cột",
+		"action_config": "Cấu hình bảng",
+		"action_header": "cấu hình cột",
+		"sort_asc": "Sắp xếp tăng dần",
+		"sort_desc": "Sắp xếp giảm dần",
+		"pin_column": "Ghim cột",
+		"hide_column": "Ẩn cột",
+		"no_data": "Không có dữ liệu",
+		"download": "Tải về"
+	},
+	"pagination": {
+		"of": "của",
+		"results": "kết quả"
+	},
+	"filter_component": {
+		"no_data": "Không có dữ liệu",
+		"load_more": "Tải thêm",
+		"search": "Tìm kiếm",
+		"pick_date": "Hãy chọn một ngày",
+		"selected": "Đã chọn",
+		"set_time": "Đặt thời gian"
+	},
+	"filter_drawer": {
+		"no_data": "Không có dữ liệu",
+		"load_more": "Tải thêm",
+		"run_filter": "Lọc",
+		"cancel_filter": "Hủy lọc",
+		"more_filter": "Thêm lọc",
+		"filter": "Bộ lọc"
+	},
+	"confirm_modal": {
+		"confirm_action": "Bạn có muốn {action} không?",
+		"delete_title": "Xoá danh sách này?",
+		"delete_description": "Các thông tin và dữ liệu liên quan sẽ được xoá hoặc ẩn đi và không thể khôi phục chúng",
+		"download_info_title": "File tải về đang được xử lý",
+		"download_info_description": "Các file đã xuất được quản lý ở mục Quản lý tệp đã xuất, vui lòng chọn Chuyển hướng để truy cập đến mục này.",
+		"cancel_description": "Nếu bạn hủy, các thay đổi trước đó sẽ không được lưu.",
+		"exported_file": "File đã xuất"
+	},
+	"icon_button": {
+		"edit": "Chỉnh sửa {value}",
+		"new": "Tạo {value}",
+		"delete": "Xóa {value}",
+		"download": "Tải {value} xuống",
+		"export": "Xuất {value}",
+		"import": "Nhập {value}"
+	},
+	"zns_preview": {
+		"account": "Tài khoản OA",
+		"message": "gửi thông báo tới số điện thoại"
+	},
+	"logo": {
+		"invalid_file_type": "Loại file không hợp lệ",
+		"file_too_large": "Dung lượng file tối đa là {value}",
+		"is_loading": "Đang tải..."
+	}
+}

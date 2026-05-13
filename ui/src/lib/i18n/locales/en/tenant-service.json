@@ -1,0 +1,49 @@
+{
+	"tenant_service": {
+		"title": "Tenant & Service Information",
+		"tenant_info": "Tenant information",
+		"tenant_name": "Tenant name",
+		"status": "Status",
+		"created_at": "Created at",
+		"updated_at": "Updated at",
+		"granted_services": "Granted services",
+		"the_tenant_has_the_right_to_access": "The tenant has the right to access",
+		"services_offered_within_the_pitel_solution_ecosystem": "services offered within the Pitel Solution ecosystem.",
+		"access_service": "Access service",
+		"start_date": "Start date",
+		"add_service": "Add service",
+		"add_tenant": "Add tenant",
+		"active": "Active",
+		"inactive": "Inactive",
+		"service": "Service",
+		"services": "Services",
+		"no_granted_services": "No services granted, please contact the administrator",
+		"tooltip": {
+			"active_service": "Active this service",
+			"inactive_service": "Inactive this service",
+			"delete_service": "Delete this service"
+		},
+		"confirm_modal": {
+			"delete_service": {
+				"title": "Delete this service?",
+				"description": "Tenant users will not be able to access the service, and related information and data will be deleted or hidden and cannot be recovered"
+			},
+			"stop_service": {
+				"title": "Stop this service?",
+				"description": "Tenant users will not be able to access the service after termination"
+			}
+		},
+		"modal": {
+			"new_tenant": {
+				"title": "Add tenant",
+				"add_failed": "Add tenant failed",
+				"add_success": "Add tenant success"
+			},
+			"add_service": {
+				"title": "Add service",
+				"add_failed": "Add service failed",
+				"add_success": "Add service success"
+			}
+		}
+	}
+}

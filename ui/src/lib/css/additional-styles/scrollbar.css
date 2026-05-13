@@ -1,0 +1,27 @@
+.scrollbar-thin::-webkit-scrollbar-track {
+	@apply bg-transparent rounded-xl my-2;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+	@apply bg-gray-200 dark:bg-gray-700/40 rounded-xl;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+	@apply bg-gray-300 dark:bg-gray-700/50;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:active {
+	@apply bg-gray-300 dark:bg-gray-700/60;
+}
+.scrollbar-thin::-webkit-scrollbar-corner {
+	@apply bg-gray-100 dark:bg-gray-700/20 rounded-xl;
+}
+.scrollbar-thin::-webkit-scrollbar-corner:hover {
+	@apply bg-gray-200 dark:bg-gray-700/30;
+}
+.scrollbar-thin::-webkit-scrollbar-corner:active {
+	@apply bg-gray-300 dark:bg-gray-700/40;
+}
+.scrollbar-thin {
+	@apply [scrollbar-color:rgb(229,231,235)];
+}
+.scrollbar-thin::-webkit-scrollbar {
+	@apply w-2 h-2 block;
+}

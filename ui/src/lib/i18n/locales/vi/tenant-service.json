@@ -1,0 +1,49 @@
+{
+	"tenant_service": {
+		"title": "Thông tin tenant & Dịch vụ",
+		"tenant_info": "Thông tin tenant",
+		"tenant_name": "Tên tenant",
+		"status": "Trạng thái",
+		"created_at": "Thời gian tạo",
+		"updated_at": "Thời gian cập nhật gần nhất",
+		"granted_services": "Dịch vụ được cấp phép",
+		"the_tenant_has_the_right_to_access": "Tenant có quyền sử dụng",
+		"services_offered_within_the_pitel_solution_ecosystem": "dịch vụ trong hệ sinh thái Pitel Solution",
+		"access_service": "Truy cập dịch vụ",
+		"start_date": "Sử dụng từ",
+		"add_service": "Thêm dịch vụ",
+		"add_tenant": "Thêm tenant",
+		"active": "Đang hoạt động",
+		"inactive": "Dừng hoạt động",
+		"service": "Dịch vụ",
+		"services": "Danh sách dịch vụ",
+		"no_granted_services": "Chưa được cấp quyền sử dụng dịch vụ nào, vui lòng liên hệ quản trị viên",
+		"tooltip": {
+			"active_service": "Kích hoạt dịch vụ này",
+			"inactive_service": "Dừng hoạt động dịch vụ",
+			"delete_service": "Xóa dịch vụ này"
+		},
+		"confirm_modal": {
+			"delete_service": {
+				"title": "Xóa dịch vụ này?",
+				"description": "Người dùng thuộc Tenant sẽ không thể truy cập dịch vụ, đồng thời các thông tin và dữ liệu liên quan sẽ được xoá hoặc ẩn đi và không thể khôi phục chúng"
+			},
+			"stop_service": {
+				"title": "Dừng hoạt động dịch vụ này?",
+				"description": "Người dùng thuộc Tenant sẽ không thể truy cập dịch vụ sau khi dừng"
+			}
+		},
+		"modal": {
+			"new_tenant": {
+				"title": "Thêm tenant",
+				"add_failed": "Thêm tenant thất bại",
+				"add_success": "Thêm tenant thành công"
+			},
+			"add_service": {
+				"title": "Thêm dịch vụ",
+				"add_failed": "Thêm dịch vụ thất bại",
+				"add_success": "Thêm dịch vụ thành công"
+			}
+		}
+	}
+}

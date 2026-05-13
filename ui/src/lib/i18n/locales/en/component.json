@@ -1,0 +1,81 @@
+{
+	"dropzone": {
+		"description": "Drag and drop the file here or upload"
+	},
+	"input": {
+		"placeholder": "Please enter {data}",
+		"search_keyword_placeholder": "Enter keyword to search"
+	},
+	"select": {
+		"placeholder": "Select a {data}"
+	},
+	"date_time_picker": {
+		"warning_time": "Please choose time from {min} to {max}",
+		"empty_date": "Please choose the day first"
+	},
+	"time_picker": {
+		"error_range": "Please choose the starting time less than the end time"
+	},
+	"table": {
+		"no": "No.",
+		"action": "Action",
+		"text-ellipsis": "Hide text",
+		"line_break": "Line break text",
+		"set_size_column": "Set Column Size",
+		"show_hide_column": "Show/Hide Column",
+		"action_config": "Table Config",
+		"action_header": "Config Column",
+		"sort_asc": "ASC",
+		"sort_desc": "DESC",
+		"pin_column": "Pin Column",
+		"hide_column": "Hide Column",
+		"no_data": "No Data",
+		"download": "Download"
+	},
+	"pagination": {
+		"of": "of",
+		"results": "results"
+	},
+	"filter_component": {
+		"no_data": "No Data",
+		"load_more": "Load More",
+		"search": "Search",
+		"pick_date": "Please pick a date",
+		"selected": "Selected",
+		"set_time": "Set the time"
+	},
+	"filter_drawer": {
+		"no_data": "No Data",
+		"load_more": "Load More",
+		"run_filter": "Filter",
+		"cancel_filter": "Cancel",
+		"more_filter": "More Filter",
+		"filter": "Filter"
+	},
+	"confirm_modal": {
+		"confirm_action": "Do you want to {action}?",
+		"delete_title": "Delete this list?",
+		"delete_description": "The related information and data will be deleted or hidden and cannot be recovered.",
+		"download_info_title": "The download file is being processed",
+		"download_info_description": "Exported files are managed in the Exported Files section. Please select Redirect to access this section.",
+		"cancel_description": "If you cancel, your previous changes will not be saved.",
+		"exported_file": "File exported"
+	},
+	"icon_button": {
+		"edit": "Edit {value}",
+		"new": "Create {value}",
+		"delete": "Delete {value}",
+		"download": "Download {value}",
+		"export": "Export {value}",
+		"import": "Import {value}"
+	},
+	"zns_preview": {
+		"account": " OA Account",
+		"message": "Send message to phone number"
+	},
+	"logo": {
+		"invalid_file_type": "Invalid file type",
+		"file_too_large": "Maximum file size is {value}",
+		"is_loading": "Loading..."
+	}
+}

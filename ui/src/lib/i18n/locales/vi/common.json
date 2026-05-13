@@ -1,0 +1,132 @@
+{
+	"keyword": "Từ khóa",
+	"user": "Người dùng",
+	"under_construction": "Tính năng này đang được xây dựng",
+	"title": {
+		"dashboard": "Trang chủ",
+		"unit_user": "Đơn vị và người dùng",
+		"add_user": "Thêm mới người dùng",
+		"edit_user": "Chỉnh sửa người dùng"
+	},
+	"locale": {
+		"vi": "Tiếng Việt",
+		"en": "English"
+	},
+	"form": {
+		"apply": "Áp dụng",
+		"clear": "Xóa bỏ",
+		"reset": "Đặt lại",
+		"save": "Lưu",
+		"start": "Bắt đầu",
+		"view_report": "Thống kê báo cáo",
+		"update": "Cập nhật",
+		"confirm": "Xác nhận",
+		"cancel": "Hủy",
+		"exit": "Thoát",
+		"next": "Tiếp theo",
+		"prev": "Trước đó",
+		"add": "Thêm",
+		"edit": "Sửa",
+		"delete": "Xóa",
+		"delete_all": "Xóa tất cả",
+		"all": "Tất cả",
+		"detail": "Chi tiết",
+		"success": "Thành công",
+		"fail": "Thất bại",
+		"navigate": "Chuyển hướng",
+		"try_again": "Thử lại",
+		"no_data": "Không có dữ liệu",
+		"other_action": "Thao tác khác",
+		"missing_field": "Hãy nhập đầy đủ thông tin trước khi chuyển sang bước tiếp theo",
+		"required": "Thông tin này không được bỏ trống",
+		"param": "Biến số",
+		"send": "Gửi"
+	},
+	"common_data": {
+		"lead": "Khách hàng",
+		"oa": "Thương hiệu",
+		"list": "Danh sách khách hàng",
+		"campaign": "Chiến dịch",
+		"campaigns": "Danh sách chiến dịch",
+		"report": "Báo cáo",
+		"template": "Mẫu tin nhắn",
+		"campaign_run_list": "Danh sách cho chiến dịch",
+		"campaign_name": "Tên chiến dịch",
+		"brand_name": "Thương hiệu",
+		"zns": "ZNS (Zalo Official Account)",
+		"sms": "SMS Brandname",
+		"phone_number": "Số điện thoại"
+	},
+	"action": {
+		"download_excel": "Tải xuống file excel",
+		"export_excel_csv": "Xuất file Excel/CSV"
+	},
+	"api": {
+		"get": {
+			"failed": "Lấy dữ liệu {data} không thành công. Hãy thử lại!"
+		},
+		"post": {
+			"failed": "Gửi dữ liệu {data} thất bại. Hãy thử lại!"
+		},
+		"update": {
+			"failed": "Cập nhật dữ liệu {data} thất bại. Hãy thử lại!",
+			"success": "Cập nhật dữ liệu {data} thành công!"
+		},
+		"create": {
+			"failed": "Tạo dữ liệu {data} thất bại. Hãy thử lại!",
+			"success": "Tạo dữ liệu {data} thành công!"
+		},
+		"delete": {
+			"failed": "Xóa dữ liệu {data} thất bại. Hãy thử lại!",
+			"success": "Xóa dữ liệu {data} thành công!"
+		},
+		"upload": {
+			"failed": "Tải File dữ liệu {data} thất bại. Hãy thử lại!",
+			"success": "Tải File dữ liệu {data} thành công!"
+		},
+		"download": {
+			"failed": "Tải dữ liệu {data} thất bại. Hãy thử lại!",
+			"success": "Tải dữ liệu {data} thành công!"
+		},
+		"import": {
+			"failed": "Nhập File dữ liệu {data} thất bại. Hãy thử lại!",
+			"success": "Nhập File dữ liệu {data} thành công!"
+		},
+		"export": {
+			"failed": "Xuất File dữ liệu {data} thất bại. Hãy thử lại!",
+			"success": "Xuất File dữ liệu {data} thành công!"
+		}
+	},
+	"sidebar": {
+		"export_management": "Quản lý tệp đã xuất",
+		"dashboard": "Dashboard",
+		"operation": "Tác nghiệp",
+		"history": "Lịch sử",
+		"more": "Bổ sung",
+		"customers": "Danh sách khách hàng",
+		"send_manual": "Gửi tin thủ công",
+		"campaigns": "Danh sách chiến dịch",
+		"sending_history": "Lịch sử gửi tin",
+		"user_history": "Lịch sử người dùng",
+		"statistics": "Thống kê báo cáo",
+		"setting": "Cài đặt",
+		"collapse": "Thu gọn",
+		"expand": "Mở rộng",
+		"language": "Ngôn ngữ",
+		"appearance": "Chủ đề",
+		"service_configuration": "Cấu hình dịch vụ",
+		"script": "Kịch bản gửi tin",
+		"brand_template": "Thương hiệu & Mẫu tin nhắn",
+		"unit_user": "Đơn vị và người dùng",
+		"role": "Phân quyền",
+		"collections": "Collections"
+	},
+	"profile": {
+		"account_info": "Thông tin tài khoản",
+		"logout": "Đăng xuất"
+	},
+	"error_message": {
+		"selected_at_least": "Hãy chọn ít nhất một {data}",
+		"required": "Thông tin {data} này không được bỏ trống "
+	}
+}
