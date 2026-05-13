@@ -2,14 +2,14 @@
 
 import { useAppStore } from "@/src/lib/store/appStore";
 import { fetchCollectionFieldNames, fetchCollectionItems } from "@lib/api/graphql";
-import { DataTable } from "@components/shared/organisms";
+import { DataTable, Filter } from "@components/shared/organisms";
 import { TableRow } from "@components/shared/organisms/DataTable";
 import DefaultPageLayout from "@components/shared/templates/DefaultPageLayout";
 import { useLocale } from "next-intl";
 import { ColumnType, TableColumn } from "@type/component/table.type";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Pagination } from "@components/shared/molecules";
-import { Skeleton } from "@components/shared/atoms";
+import { InputSearch, Skeleton } from "@components/shared/atoms";
 import { Input } from "@components/ui/input";
 import {
 	Sheet,
@@ -19,6 +19,7 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@components/ui/sheet";
+import { FileInput } from "lucide-react";
 
 export interface CollectionPageProps {
 	collection: string;
@@ -272,123 +273,33 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 				</div>
 			) : (
 				<>
-					<div className="mb-4 flex justify-between gap-2">
-						<div className="flex gap-2"></div>
+					<div className="mt-2 flex flex-col gap-2">
+						{/* Area: Actions */}
+						<div className="flex justify-between gap-2">
+							{/* Area: Left Action */}
+							<div className="flex gap-2">
+								{/* Area: Input Search */}
+								<InputSearch
+									minLength={5}
+									value={""}
+									placeholder="placeholder"
+									onChange={() => {}}
+									onSearch={() => {}}
+								/>
 
-						{/* Area: Right Action */}
-						{/* <div className="flex gap-2">
-							<Button size="sm" onClick={() => {}}>
-								Add new record
-							</Button>
-						</div> */}
+								{/* Area: Filter */}
+								<Filter param={param} filters={{}} onFilter={() => {}} onParamChange={setParam} />
+							</div>
 
-						<div className="flex gap-2">
-							<Button size="sm" onClick={handleAddNewField}>
-								Add new field on collection
-							</Button>
+							{/* Area: Right Action */}
+							<div className="flex gap-2">
+								{/* Area: Add List */}
+								<Button size="sm" onClick={handleAddNewField}>
+									add new collection field
+								</Button>
+							</div>
 						</div>
-					</div>
 
-					<Sheet open={isAddFieldOpen} onOpenChange={setIsAddFieldOpen}>
-						<SheetContent className="w-full bg-white text-slate-900 sm:max-w-lg">
-							<SheetHeader>
-								<SheetTitle>Add new field</SheetTitle>
-								<SheetDescription>
-									Create a new field for the {collection} collection.
-								</SheetDescription>
-							</SheetHeader>
-
-							<form className="mt-6 space-y-4" onSubmit={handleCreateField}>
-								<div className="space-y-2">
-									<label className="text-sm font-medium text-slate-700">Field name</label>
-									<Input
-										className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
-										value={newField.name}
-										onChange={(event) =>
-											setNewField((prev) => ({ ...prev, name: event.target.value }))
-										}
-										placeholder="e.g. custom_code"
-										required
-									/>
-								</div>
-
-								<div className="space-y-2">
-									<label className="text-sm font-medium text-slate-700">Display name</label>
-									<Input
-										className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
-										value={newField.displayName}
-										onChange={(event) =>
-											setNewField((prev) => ({
-												...prev,
-												displayName: event.target.value,
-											}))
-										}
-										placeholder="Optional label"
-									/>
-								</div>
-
-								<div className="space-y-2">
-									<label className="text-sm font-medium text-slate-700">Field type</label>
-									<select
-										className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm"
-										value={newField.type}
-										onChange={(event) =>
-											setNewField((prev) => ({ ...prev, type: event.target.value }))
-										}
-									>
-										{fieldTypeOptions.map((option) => (
-											<option key={option.value} value={option.value}>
-												{option.label}
-											</option>
-										))}
-									</select>
-								</div>
-
-								<div className="space-y-2">
-									<label className="text-sm font-medium text-slate-700">Default value</label>
-									<Input
-										className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
-										value={newField.defaultValue}
-										onChange={(event) =>
-											setNewField((prev) => ({
-												...prev,
-												defaultValue: event.target.value,
-											}))
-										}
-										placeholder="Optional"
-									/>
-								</div>
-
-								<label className="flex items-center gap-2 text-sm text-slate-700">
-									<input
-										type="checkbox"
-										checked={newField.required}
-										onChange={(event) =>
-											setNewField((prev) => ({ ...prev, required: event.target.checked }))
-										}
-									/>
-									Required
-								</label>
-
-								{fieldError && (
-									<div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-										{fieldError}
-									</div>
-								)}
-
-								<SheetFooter className="gap-2">
-									<Button type="button" outline onClick={() => setIsAddFieldOpen(false)}>
-										Cancel
-									</Button>
-									<Button type="submit" size="sm" state={isCreatingField ? "loading" : "default"}>
-										Create field
-									</Button>
-								</SheetFooter>
-							</form>
-						</SheetContent>
-					</Sheet>
-
-					<div className="flex flex-col gap-4">
 						{/* Area: Table */}
 						<DataTable
 							id="collection-data-table"
