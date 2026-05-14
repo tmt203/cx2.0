@@ -53,6 +53,16 @@ Example rendering flow:
 3. Merge and normalize config + field metadata.
 4. Render components dynamically using a registry and typed props.
 
+### 4) State Management (Zustand)
+
+Zustand is used for client-side state management to keep UI state consistent and lightweight.
+
+Responsibilities:
+
+- Store shared UI state such as collections, fields, and user session context.
+- Provide fast, localized updates without prop drilling.
+- Coordinate UI interactions (filters, pagination, visibility) across components.
+
 ## Data Flow
 
 1. **User loads page**

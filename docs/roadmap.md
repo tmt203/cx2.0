@@ -1,85 +1,85 @@
-# CX2.0 CRM UI Roadmap
+# CX2.0 UI-Only Roadmap
 
-## Phase 0 - Alignment (1-2 weeks)
-
-Goals:
-
-- Confirm product scope: fixed vs templated pages, customization granularity, permissions model.
-- Lock data contracts: filter/sort/search/pagination format, view schema, widget query shape.
-- Decide governance: versioning of UI config, audit logging, approval workflow.
-
-Deliverables:
-
-- Written product and technical decisions.
-- API and UI config contract spec.
-
-## Phase 1 - Foundation (2-3 weeks)
+## Phase 0 - UX and Scope Alignment (1-2 weeks)
 
 Goals:
 
-- Implement REST wrappers for schema/admin: fields, collections, relations, create/update field.
-- Add metadata caching and revalidation strategy for UI config + field definitions.
-- Establish auth model: server token for admin, read-only token for data.
+- Confirm UI scope: list, record, dashboard, and widget templates.
+- Define UX patterns: table interactions, forms, filters, and layout rules.
+- Align on localization and accessibility requirements.
 
 Deliverables:
 
-- Stable backend endpoints for metadata and schema changes.
-- Auth and token separation documented.
+- UI/UX scope and behavior spec.
+- Component and layout guidelines.
 
-## Phase 2 - Dynamic UI Core (3-5 weeks)
+## Phase 1 - UI Foundation (2-3 weeks)
 
 Goals:
 
-- Build UI config registry and JSON schema validation.
-- Implement renderer pipeline: fetch config + fields, normalize, map to components.
-- Define field-type mapping to UI widgets and table column types.
+- Build core layout shell, navigation, and page templates.
+- Establish design tokens and shared UI components.
+- Set up state management patterns in Zustand for UI state.
 
 Deliverables:
 
-- Dynamic page renders from Directus config end to end.
-- Validated config entries with error reporting.
+- Reusable layout system.
+- Shared component library with base styles.
 
-## Phase 3 - Data Views (3-4 weeks)
+## Phase 2 - Dynamic UI Renderer (3-5 weeks)
 
 Goals:
 
-- REST list views: pagination/sort/filter; table column config and persistence.
-- GraphQL for complex detail views and dashboards (read-only).
-- Add caching and error handling patterns for API layer.
+- Implement UI config registry and JSON schema validation.
+- Render pages dynamically from config and field metadata.
+- Map Directus field types to UI components and table columns.
 
 Deliverables:
 
-- List, detail, and dashboard pages loading real data.
-- Standardized API error handling.
+- Config-driven page rendering pipeline.
+- Field-type mapping registry.
 
-## Phase 4 - Custom Field Lifecycle (2-3 weeks)
+## Phase 3 - Data Views and Interactions (3-4 weeks)
 
 Goals:
 
-- UI flow to create fields (server-side REST to Directus schema).
-- Refresh metadata, re-render UI, validate optimistic updates.
-- Add UI-level field config overlay (labels, visibility, validation).
+- Build list and record views with sorting, filtering, and pagination.
+- Add view presets, column visibility, and saved layouts.
+- Integrate loading, empty, and error states across views.
 
 Deliverables:
 
-- Non-devs can add fields and see them in the UI.
-- Field metadata refresh is reliable and fast.
+- Production-ready list and record UIs.
+- Consistent view interaction patterns.
+
+## Phase 4 - Custom Field UX (2-3 weeks)
+
+Goals:
+
+- UI for creating fields and configuring labels, visibility, and validation.
+- Refresh metadata and re-render views after schema changes.
+- Provide inline validation feedback and error handling.
+
+Deliverables:
+
+- Field management UX.
+- Stable UI refresh behavior.
 
 ## Phase 5 - Governance and Scale (2-4 weeks)
 
 Goals:
 
-- Role-based visibility at page/widget/view/field level.
-- Audit logging for config and schema changes.
-- Performance hardening: batching, widget timeouts, limits, fallbacks.
+- Permission-aware UI: hide actions and fields by role.
+- Performance tuning for large tables and widget-heavy pages.
+- Improve resilience with fallbacks for slow or partial loads.
 
 Deliverables:
 
-- Secure, stable, and scalable dynamic UI.
-- Audit trail for changes and admin actions.
+- Secure, scalable UI behavior.
+- Documented UI performance constraints.
 
-## Ongoing - Risk Checks
+## Ongoing - UI Risk Checks
 
-- Clarify limits: widgets per dashboard, columns per view, query complexity.
-- Define safe fallbacks for slow widgets or partial failures.
-- Keep documentation updated for REST and GraphQL query shapes.
+- Stress-test large datasets and deep layouts.
+- Verify localization and accessibility coverage.
+- Keep UI behavior documentation current.
