@@ -16,4 +16,4 @@ export type ApiResponse<T> = {
 
 export type DirectusResponse<T> = {
 	data: T;
-}
+};

@@ -1,25 +1,15 @@
 "use client";
 
 import { useAppStore } from "@/src/lib/store/appStore";
-import { fetchCollectionFieldNames, fetchCollectionItems } from "@lib/api/graphql";
+import { apiGetItems } from "@api/rest/directus/items";
+import { InputSearch, Skeleton } from "@components/shared/atoms";
+import { Button, Pagination } from "@components/shared/molecules";
 import { DataTable, Filter } from "@components/shared/organisms";
 import { TableRow } from "@components/shared/organisms/DataTable";
 import DefaultPageLayout from "@components/shared/templates/DefaultPageLayout";
-import { useLocale } from "next-intl";
 import { ColumnType, TableColumn } from "@type/component/table.type";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Pagination } from "@components/shared/molecules";
-import { InputSearch, Skeleton } from "@components/shared/atoms";
-import { Input } from "@components/ui/input";
-import {
-	Sheet,
-	SheetContent,
-	SheetDescription,
-	SheetFooter,
-	SheetHeader,
-	SheetTitle,
-} from "@components/ui/sheet";
-import { FileInput } from "lucide-react";
+import { useLocale } from "next-intl";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export interface CollectionPageProps {
 	collection: string;
@@ -34,6 +24,8 @@ export interface CollectionPageProps {
 const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 	const locale = useLocale();
 	const collections = useAppStore((s) => s.collections);
+	const fields = useAppStore((s) => s.fields);
+
 	const currentCollection = collections.find((item) => item.collection === collection);
 	const collectionLabel =
 		currentCollection?.meta?.translations?.find((item) =>
@@ -47,62 +39,59 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 	const [isLoading, setIsLoading] = useState<boolean>(true);
 	const [dataTable, setDataTable] = useState<TableRow[]>([]);
 	const [param, setParam] = useState<Record<string, any>>({});
-	const [fieldNames, setFieldNames] = useState<string[]>([]);
-	const [fieldLabels, setFieldLabels] = useState<Record<string, string>>({});
 	const [hiddenColumnKeys, setHiddenColumnKeys] = useState<string[]>([]);
-	const [isAddFieldOpen, setIsAddFieldOpen] = useState<boolean>(false);
-	const [isCreatingField, setIsCreatingField] = useState<boolean>(false);
-	const [fieldError, setFieldError] = useState<string | null>(null);
-	const [newField, setNewField] = useState({
-		name: "",
-		displayName: "",
-		type: "string",
-		required: false,
-		defaultValue: "",
-	});
-	const inferColumnType = useCallback(
-		(key: string): ColumnType => {
-			const sampleValue = dataTable.find((row) => row[key] !== null && row[key] !== undefined)?.[
-				key
-			];
 
-			if (typeof sampleValue === "boolean") {
-				return ColumnType.BOOLEAN;
-			}
-
-			if (typeof sampleValue === "number") {
-				return ColumnType.NUMBER;
-			}
-
-			return ColumnType.TEXT;
-		},
-		[dataTable]
-	);
 	const columns = useMemo<TableColumn<TableRow>[]>(() => {
-		if (!dataTable.length) return [];
-		return Object.keys(dataTable[0] || {}).map((key) => ({
-			key,
-			label: fieldLabels[key] || key,
-			dataType: inferColumnType(key),
-			isHidden: hiddenColumnKeys.includes(key),
-			noTranslation: true,
-		}));
-	}, [dataTable, fieldLabels, hiddenColumnKeys, inferColumnType]);
+		const normalizedLocale = locale.toLowerCase();
+		const normalizeType = (type?: string) => (type ?? "").toLowerCase();
 
-	const fieldTypeOptions = useMemo(
-		() => [
-			{ label: "String", value: "string" },
-			{ label: "Text", value: "text" },
-			{ label: "Integer", value: "integer" },
-			{ label: "Float", value: "float" },
-			{ label: "Boolean", value: "boolean" },
-			{ label: "Date", value: "date" },
-			{ label: "Time", value: "time" },
-			{ label: "Date time", value: "dateTime" },
-			{ label: "JSON", value: "json" },
-		],
-		[]
-	);
+		/**
+		 * Resolve column type based on Directus field type
+		 * @param type string
+		 */
+		const resolveColumnType = (type?: string) => {
+			switch (normalizeType(type)) {
+				case "boolean":
+					return ColumnType.BOOLEAN;
+				case "integer":
+				case "biginteger":
+				case "float":
+				case "decimal":
+				case "numeric":
+					return ColumnType.NUMBER;
+				case "date":
+					return ColumnType.DATE;
+				case "datetime":
+				case "timestamp":
+					return ColumnType.DATETIME;
+				case "time":
+					return ColumnType.TIME;
+				case "string":
+				case "text":
+				case "uuid":
+				default:
+					return ColumnType.TEXT;
+			}
+		};
+
+		return fields
+			.filter((item) => !item.collection.startsWith("directus_"))
+			.filter((item) => item.collection === collection)
+			.map((item) => {
+				const label =
+					(item?.meta?.translations instanceof Array ? item?.meta?.translations : []).find(
+						(translation) => translation.language.toLowerCase().includes(normalizedLocale)
+					)?.translation || item.field;
+
+				return {
+					key: item.field,
+					label,
+					dataType: resolveColumnType(item.type),
+					isHidden: hiddenColumnKeys.includes(item.field),
+					noTranslation: true,
+				};
+			});
+	}, [collection, fields, hiddenColumnKeys, locale]);
 
 	/**
 	 * Handle hide column
@@ -117,130 +106,48 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 	/**
 	 * Handle get data table
 	 */
-	const handleGetDataTable = async () => {
+	const handleGetDataTable = useCallback(async () => {
 		try {
 			setIsLoading(true);
-			const defaultFields = fieldNames.length ? fieldNames : ["id"];
-			const fields = (param?.fields as string[] | undefined) ?? defaultFields;
-			const { items, total } = await fetchCollectionItems<TableRow>({
-				collection,
-				fields,
+
+			const response = await apiGetItems(collection, {
+				page,
 				limit: pageSize,
-				offset: (page - 1) * pageSize,
-				sort: param?.sort as string[] | undefined,
-				filter: param?.filter as Record<string, unknown> | undefined,
-				fetchPolicy: "network-only",
+				...param,
 			});
 
-			const normalizeValue = (value: unknown): unknown => {
-				if (Array.isArray(value)) {
-					return value.map(normalizeValue).join(", ");
-				}
-
-				if (value && typeof value === "object") {
-					if ("id" in value) {
-						return (value as { id?: unknown }).id ?? "";
-					}
-
-					return JSON.stringify(value);
-				}
-
-				return value;
-			};
-
-			const normalizedItems = items.map((row) => {
-				const normalizedEntries = Object.entries(row)
-					.filter(([key]) => !key.startsWith("__"))
-					.map(([key, value]) => [key, normalizeValue(value)]);
-				return Object.fromEntries(normalizedEntries) as TableRow;
-			});
-
-			setDataTable(normalizedItems);
-			setTotalItem(total);
+			setDataTable(
+				response.data.map((item, index) => ({
+					id: (item as Record<string, unknown>).id ?? index,
+					...item,
+				}))
+			);
 		} catch (error) {
 			console.log(error);
 		} finally {
 			setIsLoading(false);
 		}
-	};
-
-	const loadFields = useCallback(async () => {
-		try {
-			const response = await fetchCollectionFieldNames(collection, locale);
-			const withId = response.fields.includes("id") ? response.fields : ["id", ...response.fields];
-			setFieldNames(withId);
-			setFieldLabels(response.labels);
-		} catch (error) {
-			console.log(error);
-			setFieldNames(["id"]);
-			setFieldLabels({});
-		}
-	}, [collection, locale]);
+	}, [collection, pageSize, param]);
 
 	/**
-	 * Handle add new field on collection
+	 * Handle get total records
 	 */
-	const handleAddNewField = () => {
-		setFieldError(null);
-		setIsAddFieldOpen(true);
-	};
-
-	const handleCreateField = async (event: FormEvent<HTMLFormElement>) => {
-		event.preventDefault();
-		setFieldError(null);
-		setIsCreatingField(true);
-
+	const handleGetTotalRecords = useCallback(async () => {
 		try {
-			const response = await fetch(
-				`/api/collections/fields?collection=${encodeURIComponent(collection)}`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						field: newField.name.trim(),
-						displayName: newField.displayName.trim() || undefined,
-						type: newField.type,
-						required: newField.required,
-						defaultValue: newField.defaultValue,
-					}),
-				}
-			);
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				throw new Error(errorText || "Failed to create field");
-			}
-
-			await loadFields();
-			setPage(1);
-			setIsAddFieldOpen(false);
-			setNewField({
-				name: "",
-				displayName: "",
-				type: "string",
-				required: false,
-				defaultValue: "",
+			const response = await apiGetItems(collection, {
+				["filter[status][_neq]"]: "archived",
+				["aggregate[countDistinct]"]: "id",
 			});
+			const total = (response.data[0] as any).countDistinct.id ?? 0;
+			setTotalItem(total);
 		} catch (error) {
-			const message = error instanceof Error ? error.message : "Unknown error";
-			setFieldError(message);
-		} finally {
-			setIsCreatingField(false);
+			console.log(error);
 		}
-	};
+	}, [collection]);
 
 	useEffect(() => {
-		loadFields();
-	}, [loadFields]);
-
-	useEffect(() => {
-		if (!fieldNames.length) {
-			return;
-		}
-		handleGetDataTable();
-	}, [collection, page, pageSize, param, fieldNames]);
+		Promise.all([handleGetDataTable(), handleGetTotalRecords()]);
+	}, [collection, page, pageSize]);
 
 	return (
 		<DefaultPageLayout
@@ -294,8 +201,8 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 							{/* Area: Right Action */}
 							<div className="flex gap-2">
 								{/* Area: Add List */}
-								<Button size="sm" onClick={handleAddNewField}>
-									add new collection field
+								<Button size="sm" onClick={() => {}}>
+									Add field
 								</Button>
 							</div>
 						</div>

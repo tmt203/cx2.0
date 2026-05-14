@@ -1,6 +1,7 @@
 "use client";
 
 import type { DirectusCollection } from "@type/api/graphql/collections.type";
+import type { DirectusField } from "@type/api/rest/directus/field.type";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -31,14 +32,18 @@ export type AppStoreState = {
 	setSidebarOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
 	setSidebarExpanded: (expanded: boolean) => void;
 
-	collectionSchemas: Record<string, CollectionSchema>;
-	setCollectionSchema: (collection: string, schema: CollectionSchema) => void;
-	setCollectionSchemas: (schemas: Record<string, CollectionSchema>) => void;
-	clearCollectionSchema: (collection?: string) => void;
+	fields: DirectusField[];
+	setFields: (fields: DirectusField[]) => void;
+	clearFields: () => void;
 
 	collections: DirectusCollection[];
 	setCollections: (collections: DirectusCollection[]) => void;
 	clearCollections: () => void;
+
+	collectionSchemas: Record<string, CollectionSchema>;
+	setCollectionSchema: (collection: string, schema: CollectionSchema) => void;
+	setCollectionSchemas: (schemas: Record<string, CollectionSchema>) => void;
+	clearCollectionSchema: (collection?: string) => void;
 
 	tableStateByKey: Record<string, TableState>;
 	setTableState: (key: string, next: TableState | ((prev: TableState) => TableState)) => void;
@@ -53,13 +58,14 @@ export type AppStoreState = {
 
 const initialState = {
 	sidebar: { open: false, expanded: false },
-	collectionSchemas: {},
+	fields: [],
 	collections: [],
+	collectionSchemas: {},
 	tableStateByKey: {},
 	uiPreferences: { locale: undefined, theme: "system", columnVisibility: {} },
 } satisfies Pick<
 	AppStoreState,
-	"sidebar" | "collectionSchemas" | "collections" | "tableStateByKey" | "uiPreferences"
+	"sidebar" | "collectionSchemas" | "collections" | "fields" | "tableStateByKey" | "uiPreferences"
 >;
 
 export const useAppStore = create<AppStoreState>()(
@@ -76,6 +82,12 @@ export const useAppStore = create<AppStoreState>()(
 			setSidebarExpanded: (expanded) =>
 				set((state) => ({ sidebar: { ...state.sidebar, expanded } })),
 
+			setFields: (fields) => set(() => ({ fields })),
+			clearFields: () => set(() => ({ fields: [] })),
+
+			setCollections: (collections) => set(() => ({ collections })),
+			clearCollections: () => set(() => ({ collections: [] })),
+
 			setCollectionSchema: (collection, schema) =>
 				set((state) => ({
 					collectionSchemas: { ...state.collectionSchemas, [collection]: schema },
@@ -89,9 +101,6 @@ export const useAppStore = create<AppStoreState>()(
 					const { [collection]: _removed, ...rest } = state.collectionSchemas;
 					return { collectionSchemas: rest };
 				}),
-
-			setCollections: (collections) => set(() => ({ collections })),
-			clearCollections: () => set(() => ({ collections: [] })),
 
 			setTableState: (key, next) =>
 				set((state) => ({
@@ -141,13 +150,14 @@ export const useAppStore = create<AppStoreState>()(
 				}),
 		}),
 		{
-			name: "app-store",
+			name: "cx-app-store",
 			version: 1,
 			storage: createJSONStorage(() => localStorage),
 			partialize: (state) => ({
 				sidebar: state.sidebar,
 				collectionSchemas: state.collectionSchemas,
 				collections: state.collections,
+				fields: state.fields,
 				tableStateByKey: state.tableStateByKey,
 				uiPreferences: state.uiPreferences,
 			}),

@@ -4,7 +4,9 @@ import { getLocale } from "next-intl/server";
 import type { GroupMenu } from "../molecules/SidebarMenu";
 import type { SidebarMenu } from "../organisms/Sidebar";
 import AppLayoutTemplateClient from "./AppLayoutTemplateClient";
-import { apiGetCollections } from "@api/rest/directus/collection";
+import { apiGetCollections } from "@api/rest/directus/collections";
+import { DirectusField } from "@type/api/rest/directus/field.type";
+import { apiGetFields } from "@api/rest/directus/fields";
 
 interface AppLayoutTemplateProps {
 	children: React.ReactNode;
@@ -54,16 +56,26 @@ const mapCollectionSubGroups = (
 
 const AppLayoutTemplate = async ({ children }: AppLayoutTemplateProps) => {
 	const locale = await getLocale();
+
 	let collectionSubGroups: Omit<GroupMenu, "icon" | "subGroups">[] = [];
 	let collections: DirectusCollection[] = [];
+	let fields: DirectusField[] = [];
 
 	try {
 		const response = await apiGetCollections();
 		collections = response.data || [];
-		console.log("Fetched collections:", collections);
+
+		// Mapping for sidebar menu
 		collectionSubGroups = mapCollectionSubGroups(collections, locale);
 	} catch (error) {
 		console.error("Error fetching collections:", error);
+	}
+
+	try {
+		const response = await apiGetFields();
+		fields = response.data || [];
+	} catch (error) {
+		console.error("Error fetching fields:", error);
 	}
 
 	const menu: SidebarMenu[] = [
@@ -124,7 +136,7 @@ const AppLayoutTemplate = async ({ children }: AppLayoutTemplateProps) => {
 	];
 
 	return (
-		<AppLayoutTemplateClient menu={menu} collections={collections}>
+		<AppLayoutTemplateClient menu={menu} collections={collections} fields={fields}>
 			{children}
 		</AppLayoutTemplateClient>
 	);
