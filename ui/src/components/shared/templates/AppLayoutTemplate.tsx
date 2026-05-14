@@ -4,6 +4,7 @@ import { getLocale } from "next-intl/server";
 import type { GroupMenu } from "../molecules/SidebarMenu";
 import type { SidebarMenu } from "../organisms/Sidebar";
 import AppLayoutTemplateClient from "./AppLayoutTemplateClient";
+import { apiGetCollections } from "@api/rest/directus/collection";
 
 interface AppLayoutTemplateProps {
 	children: React.ReactNode;
@@ -57,12 +58,9 @@ const AppLayoutTemplate = async ({ children }: AppLayoutTemplateProps) => {
 	let collections: DirectusCollection[] = [];
 
 	try {
-		const data = await graphqlQuery<{ collections: DirectusCollection[] }>(
-			COLLECTIONS_QUERY,
-			undefined,
-			{ system: true }
-		);
-		collections = data.collections || [];
+		const response = await apiGetCollections();
+		collections = response.data || [];
+		console.log("Fetched collections:", collections);
 		collectionSubGroups = mapCollectionSubGroups(collections, locale);
 	} catch (error) {
 		console.error("Error fetching collections:", error);

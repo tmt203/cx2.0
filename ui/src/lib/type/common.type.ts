@@ -36,6 +36,7 @@ export type SelectOption = {
 export type Param = {
 	limit?: number;
 	offset?: number;
+	meta?: string;
 };
 
 export type SearchParams = {

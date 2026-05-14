@@ -280,9 +280,9 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 							<div className="flex gap-2">
 								{/* Area: Input Search */}
 								<InputSearch
+									placeholder="keyword"
 									minLength={5}
 									value={""}
-									placeholder="placeholder"
 									onChange={() => {}}
 									onSearch={() => {}}
 								/>

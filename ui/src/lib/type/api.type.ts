@@ -13,3 +13,7 @@ export type ApiResponse<T> = {
 	total?: number;
 	data: T;
 };
+
+export type DirectusResponse<T> = {
+	data: T;
+}
