@@ -4,6 +4,7 @@ import { useAppStore } from "@/src/lib/store/appStore";
 import { apiGetItems } from "@api/rest/directus/items";
 import { InputSearch, Skeleton } from "@components/shared/atoms";
 import { Button, Pagination } from "@components/shared/molecules";
+import { FilterItemConfig } from "@components/shared/molecules/FilterItem";
 import { DataTable, Filter } from "@components/shared/organisms";
 import { TableRow } from "@components/shared/organisms/DataTable";
 import DefaultPageLayout from "@components/shared/templates/DefaultPageLayout";
@@ -33,6 +34,7 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 		)?.translation || collection;
 
 	// States
+	const [search, setSearch] = useState<string>("");
 	const [page, setPage] = useState<number>(1);
 	const [pageSize, setPageSize] = useState<number>(20);
 	const [totalItem, setTotalItem] = useState<number>(0);
@@ -40,6 +42,7 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 	const [dataTable, setDataTable] = useState<TableRow[]>([]);
 	const [param, setParam] = useState<Record<string, any>>({});
 	const [hiddenColumnKeys, setHiddenColumnKeys] = useState<string[]>([]);
+	const [filters, setFilters] = useState<Record<string, FilterItemConfig>>({});
 
 	const columns = useMemo<TableColumn<TableRow>[]>(() => {
 		const normalizedLocale = locale.toLowerCase();
@@ -113,6 +116,7 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 			const response = await apiGetItems(collection, {
 				page,
 				limit: pageSize,
+				...{ search },
 				...param,
 			});
 
@@ -127,7 +131,7 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 		} finally {
 			setIsLoading(false);
 		}
-	}, [collection, pageSize, param]);
+	}, [collection, page, pageSize, param, search]);
 
 	/**
 	 * Handle get total records
@@ -146,8 +150,12 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 	}, [collection]);
 
 	useEffect(() => {
+		console.log("Search:", search);
+	}, [search]);
+
+	useEffect(() => {
 		Promise.all([handleGetDataTable(), handleGetTotalRecords()]);
-	}, [collection, page, pageSize]);
+	}, [collection, page, pageSize, search, handleGetDataTable, handleGetTotalRecords]);
 
 	return (
 		<DefaultPageLayout
@@ -189,9 +197,9 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 								<InputSearch
 									placeholder="keyword"
 									minLength={5}
-									value={""}
-									onChange={() => {}}
-									onSearch={() => {}}
+									value={search}
+									onChange={setSearch}
+									onSearch={handleGetDataTable}
 								/>
 
 								{/* Area: Filter */}
