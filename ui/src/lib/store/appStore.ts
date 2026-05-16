@@ -39,34 +39,13 @@ export type AppStoreState = {
 	collections: DirectusCollection[];
 	setCollections: (collections: DirectusCollection[]) => void;
 	clearCollections: () => void;
-
-	collectionSchemas: Record<string, CollectionSchema>;
-	setCollectionSchema: (collection: string, schema: CollectionSchema) => void;
-	setCollectionSchemas: (schemas: Record<string, CollectionSchema>) => void;
-	clearCollectionSchema: (collection?: string) => void;
-
-	tableStateByKey: Record<string, TableState>;
-	setTableState: (key: string, next: TableState | ((prev: TableState) => TableState)) => void;
-	clearTableState: (key?: string) => void;
-
-	uiPreferences: UiPreferences;
-	setLocale: (locale: string) => void;
-	setTheme: (theme: UiPreferences["theme"]) => void;
-	setColumnVisibility: (key: string, visibility: Record<string, boolean>) => void;
-	clearColumnVisibility: (key?: string) => void;
 };
 
 const initialState = {
 	sidebar: { open: false, expanded: false },
 	fields: [],
 	collections: [],
-	collectionSchemas: {},
-	tableStateByKey: {},
-	uiPreferences: { locale: undefined, theme: "system", columnVisibility: {} },
-} satisfies Pick<
-	AppStoreState,
-	"sidebar" | "collectionSchemas" | "collections" | "fields" | "tableStateByKey" | "uiPreferences"
->;
+} satisfies Pick<AppStoreState, "sidebar" | "collections" | "fields">;
 
 export const useAppStore = create<AppStoreState>()(
 	persist(
@@ -87,67 +66,6 @@ export const useAppStore = create<AppStoreState>()(
 
 			setCollections: (collections) => set(() => ({ collections })),
 			clearCollections: () => set(() => ({ collections: [] })),
-
-			setCollectionSchema: (collection, schema) =>
-				set((state) => ({
-					collectionSchemas: { ...state.collectionSchemas, [collection]: schema },
-				})),
-			setCollectionSchemas: (schemas) => set(() => ({ collectionSchemas: schemas })),
-			clearCollectionSchema: (collection) =>
-				set((state) => {
-					if (!collection) {
-						return { collectionSchemas: {} };
-					}
-					const { [collection]: _removed, ...rest } = state.collectionSchemas;
-					return { collectionSchemas: rest };
-				}),
-
-			setTableState: (key, next) =>
-				set((state) => ({
-					tableStateByKey: {
-						...state.tableStateByKey,
-						[key]: typeof next === "function" ? next(state.tableStateByKey[key] || {}) : next,
-					},
-				})),
-			clearTableState: (key) =>
-				set((state) => {
-					if (!key) {
-						return { tableStateByKey: {} };
-					}
-					const { [key]: _removed, ...rest } = state.tableStateByKey;
-					return { tableStateByKey: rest };
-				}),
-
-			setLocale: (locale) =>
-				set((state) => ({
-					uiPreferences: { ...state.uiPreferences, locale },
-				})),
-			setTheme: (theme) =>
-				set((state) => ({
-					uiPreferences: { ...state.uiPreferences, theme },
-				})),
-			setColumnVisibility: (key, visibility) =>
-				set((state) => ({
-					uiPreferences: {
-						...state.uiPreferences,
-						columnVisibility: {
-							...state.uiPreferences.columnVisibility,
-							[key]: visibility,
-						},
-					},
-				})),
-			clearColumnVisibility: (key) =>
-				set((state) => {
-					if (!key) {
-						return {
-							uiPreferences: { ...state.uiPreferences, columnVisibility: {} },
-						};
-					}
-					const { [key]: _removed, ...rest } = state.uiPreferences.columnVisibility;
-					return {
-						uiPreferences: { ...state.uiPreferences, columnVisibility: rest },
-					};
-				}),
 		}),
 		{
 			name: "cx-app-store",
@@ -155,11 +73,8 @@ export const useAppStore = create<AppStoreState>()(
 			storage: createJSONStorage(() => localStorage),
 			partialize: (state) => ({
 				sidebar: state.sidebar,
-				collectionSchemas: state.collectionSchemas,
 				collections: state.collections,
 				fields: state.fields,
-				tableStateByKey: state.tableStateByKey,
-				uiPreferences: state.uiPreferences,
 			}),
 		}
 	)

@@ -9,6 +9,7 @@ import { DataTable, Filter } from "@components/shared/organisms";
 import { TableRow } from "@components/shared/organisms/DataTable";
 import DefaultPageLayout from "@components/shared/templates/DefaultPageLayout";
 import { ColumnType, TableColumn } from "@type/component/table.type";
+import { debounce } from "@utils/debounce";
 import { useLocale } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -23,15 +24,11 @@ export interface CollectionPageProps {
  * @param recordId string | undefined
  */
 const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
-	const locale = useLocale();
-	const collections = useAppStore((s) => s.collections);
-	const fields = useAppStore((s) => s.fields);
+	const appStore = useAppStore();
+	const fields = appStore.fields.filter((field) => field.collection === collection);
 
-	const currentCollection = collections.find((item) => item.collection === collection);
-	const collectionLabel =
-		currentCollection?.meta?.translations?.find((item) =>
-			item.language.toLowerCase().includes(locale.toLowerCase())
-		)?.translation || collection;
+	// Hooks
+	const locale = useLocale();
 
 	// States
 	const [search, setSearch] = useState<string>("");
@@ -39,6 +36,7 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 	const [pageSize, setPageSize] = useState<number>(20);
 	const [totalItem, setTotalItem] = useState<number>(0);
 	const [isLoading, setIsLoading] = useState<boolean>(true);
+	const [isDataLoading, setIsDataLoading] = useState<boolean>(false);
 	const [dataTable, setDataTable] = useState<TableRow[]>([]);
 	const [param, setParam] = useState<Record<string, any>>({});
 	const [hiddenColumnKeys, setHiddenColumnKeys] = useState<string[]>([]);
@@ -48,10 +46,6 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 		const normalizedLocale = locale.toLowerCase();
 		const normalizeType = (type?: string) => (type ?? "").toLowerCase();
 
-		/**
-		 * Resolve column type based on Directus field type
-		 * @param type string
-		 */
 		const resolveColumnType = (type?: string) => {
 			switch (normalizeType(type)) {
 				case "boolean":
@@ -77,24 +71,23 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 			}
 		};
 
-		return fields
-			.filter((item) => !item.collection.startsWith("directus_"))
-			.filter((item) => item.collection === collection)
+		return [...fields]
+			.sort((a, b) => Number(a.meta?.order) - Number(b.meta?.order))
 			.map((item) => {
-				const label =
-					(item?.meta?.translations instanceof Array ? item?.meta?.translations : []).find(
-						(translation) => translation.language.toLowerCase().includes(normalizedLocale)
+				const translation =
+					(item?.meta?.translations instanceof Array ? item.meta.translations : []).find((entry) =>
+						entry.language.toLowerCase().includes(normalizedLocale)
 					)?.translation || item.field;
 
 				return {
 					key: item.field,
-					label,
+					label: translation,
 					dataType: resolveColumnType(item.type),
-					isHidden: hiddenColumnKeys.includes(item.field),
+					isHidden: Boolean(item.meta?.hidden) || hiddenColumnKeys.includes(item.field),
 					noTranslation: true,
 				};
 			});
-	}, [collection, fields, hiddenColumnKeys, locale]);
+	}, [fields, hiddenColumnKeys, locale]);
 
 	/**
 	 * Handle hide column
@@ -133,6 +126,11 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 		}
 	}, [collection, page, pageSize, param, search]);
 
+	const debouncedSearch = useMemo(
+		() => debounce(() => handleGetDataTable(), 500),
+		[handleGetDataTable]
+	);
+
 	/**
 	 * Handle get total records
 	 */
@@ -150,12 +148,9 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 	}, [collection]);
 
 	useEffect(() => {
-		console.log("Search:", search);
-	}, [search]);
-
-	useEffect(() => {
-		Promise.all([handleGetDataTable(), handleGetTotalRecords()]);
-	}, [collection, page, pageSize, search, handleGetDataTable, handleGetTotalRecords]);
+		if (search.length > 0 && search.length < 5) return;
+		debouncedSearch();
+	}, [search, debouncedSearch]);
 
 	return (
 		<DefaultPageLayout
@@ -167,80 +162,65 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 				},
 				{
 					key: collection,
-					label: collectionLabel,
+					label: "",
 					noTranslate: true,
 				},
 			]}
 		>
-			{isLoading ? (
-				<div>
-					<Skeleton shape="square" className="mb-4 w-full" />
-					<Skeleton shape="square" className="mb-1 w-full" />
-					<Skeleton shape="square" className="mb-1 w-full" />
-					<Skeleton shape="square" className="mb-1 w-full" />
-					<Skeleton shape="square" className="mb-1 w-full" />
-
-					<Skeleton shape="square" className="mb-1 w-full" />
-					<Skeleton shape="square" className="mb-1 w-full" />
-					<Skeleton shape="square" className="mb-1 w-full" />
-					<Skeleton shape="square" className="mb-1 w-full" />
-					<Skeleton shape="square" className="mb-1 w-full" />
-				</div>
-			) : (
-				<>
-					<div className="mt-2 flex flex-col gap-2">
-						{/* Area: Actions */}
-						<div className="flex justify-between gap-2">
-							{/* Area: Left Action */}
-							<div className="flex gap-2">
-								{/* Area: Input Search */}
-								<InputSearch
-									placeholder="keyword"
-									minLength={5}
-									value={search}
-									onChange={setSearch}
-									onSearch={handleGetDataTable}
-								/>
-
-								{/* Area: Filter */}
-								<Filter param={param} filters={{}} onFilter={() => {}} onParamChange={setParam} />
-							</div>
-
-							{/* Area: Right Action */}
-							<div className="flex gap-2">
-								{/* Area: Add List */}
-								<Button size="sm" onClick={() => {}}>
-									Add field
-								</Button>
-							</div>
-						</div>
-
-						{/* Area: Table */}
-						<DataTable
-							id="collection-data-table"
-							showAction
-							data={dataTable}
-							showActionColumn
-							currentPage={page}
-							pageSize={pageSize}
-							totalItem={totalItem}
-							columns={columns}
-							onHideColumn={handleHideColumn}
+			<div className="mt-2 flex flex-col gap-2">
+				{/* Area: Actions */}
+				<div className="flex justify-between gap-2">
+					{/* Area: Left Action */}
+					<div className="flex gap-2">
+						{/* Area: Input Search */}
+						<InputSearch
+							placeholder="keyword"
+							minLength={5}
+							value={search}
+							onChange={setSearch}
+							onSearch={handleGetDataTable}
 						/>
 
-						{/* Area: Pagination */}
-						{dataTable.length > 0 && (
-							<Pagination
-								currentPage={page}
-								pageSize={pageSize}
-								totalItem={totalItem}
-								setPage={setPage}
-								setPageSize={setPageSize}
-							/>
-						)}
+						{/* Area: Filter */}
+						<Filter param={param} filters={{}} onFilter={() => {}} onParamChange={setParam} />
 					</div>
-				</>
-			)}
+
+					{/* Area: Right Action */}
+					<div className="flex gap-2">
+						{/* Area: Add List */}
+						<Button size="sm" onClick={() => {}}>
+							Add field
+						</Button>
+					</div>
+				</div>
+
+				{/* Area: Table */}
+				{columns.length > 0 && (
+					<DataTable
+						id="collection-data-table"
+						showAction
+						data={dataTable}
+						showActionColumn
+						columns={columns}
+						currentPage={page}
+						pageSize={pageSize}
+						totalItem={totalItem}
+						isLoading={isLoading}
+						onHideColumn={handleHideColumn}
+					/>
+				)}
+
+				{/* Area: Pagination */}
+				{dataTable.length > 0 && (
+					<Pagination
+						currentPage={page}
+						pageSize={pageSize}
+						totalItem={totalItem}
+						setPage={setPage}
+						setPageSize={setPageSize}
+					/>
+				)}
+			</div>
 		</DefaultPageLayout>
 	);
 };

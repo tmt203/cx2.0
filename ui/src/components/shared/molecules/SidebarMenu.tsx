@@ -11,7 +11,7 @@ export interface GroupMenu {
 	id: string;
 	label: string;
 	groupId: string;
-	icon: keyof typeof LucideIcons;
+	icon?: keyof typeof LucideIcons | null;
 	noTranslate?: boolean;
 	href?: string;
 	subGroups?: Omit<GroupMenu, "icon" | "subGroups">[];
@@ -107,14 +107,16 @@ const SidebarMenu = ({
 											>
 												<div className="flex items-center justify-between">
 													<div className="flex items-center">
-														<Icon
-															size={16}
-															name={item.icon}
-															strokeWidth={2.5}
-															className={clsx("stroke-secondary-text-color", {
-																"!stroke-primary-500": segments.includes(`${item.href ?? "#"}`),
-															})}
-														/>
+														{item.icon && (
+															<Icon
+																size={16}
+																name={item.icon}
+																strokeWidth={2.5}
+																className={clsx("stroke-secondary-text-color", {
+																	"!stroke-primary-500": segments.includes(`${item.href ?? "#"}`),
+																})}
+															/>
+														)}
 														<span
 															className={clsx(
 																"menu-title ml-4 font-medium duration-200 lg:sidebar-expanded:opacity-100 2xl:opacity-100",
@@ -187,16 +189,18 @@ const SidebarMenu = ({
 							<SidebarLink href={item.href ?? "#"}>
 								<div className="flex items-center justify-between">
 									<div className="flex grow items-center">
-										<Icon
-											size={16}
-											strokeWidth={2.5}
-											name={item.icon}
-											className={clsx("stroke-secondary-text-color", {
-												"!stroke-primary-500": pathName === item.href,
-											})}
-										/>
+										{item.icon && (
+											<Icon
+												size={16}
+												strokeWidth={2.5}
+												name={item.icon}
+												className={clsx("stroke-secondary-text-color", {
+													"!stroke-primary-500": pathName === item.href,
+												})}
+											/>
+										)}
 										<span className="ml-4 font-medium duration-200 lg:sidebar-expanded:opacity-100 2xl:opacity-100">
-											{t(item.label)}
+											{item.noTranslate ? item.label : t(item.label)}
 										</span>
 									</div>
 								</div>

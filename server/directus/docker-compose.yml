@@ -54,6 +54,7 @@ services:
       CACHE_ENABLED: "true"
       CACHE_STORE: "redis"
       REDIS: "redis://cache:6379"
+      CACHE_SCHEMA: "false"
 
       ADMIN_EMAIL: "admin@example.com"
       ADMIN_PASSWORD: "admin123"

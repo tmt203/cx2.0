@@ -63,6 +63,7 @@ Common fields for configurable records:
 
 - `key`: unique stable identifier.
 - `label` or `title`: display name.
+- `translations`: JSON for localized labels.
 - `type`: layout, component, widget, field, or view type.
 - `props`: JSON configuration for rendering.
 - `order`: display order.
@@ -202,17 +203,17 @@ sequenceDiagram
 
 ## Recommended Ownership
 
-| Concern | Recommended model | Example |
-| --- | --- | --- |
-| Sidebar route | `ui_pages` | `/dashboard`, `/analytics`, `/collections` |
-| Unique page layout | `ui_pages` + `ui_sections` + `ui_components` | Analytics dashboard with charts |
-| Dashboard widget | `ui_widgets` | KPI card, chart, recent activity |
-| Collection page shell | Code component + `ui_pages` | Generic `CollectionPage` route |
-| Collection list layout | `ui_views` | Contacts table, deals kanban, products cards |
-| View-specific filter/sort/search | `ui_views.query` | My open deals sorted by close date |
-| Reusable named filter | `ui_filters` | Active customers, archived records |
-| Field label/rendering/validation | `ui_fields` | Format phone number, hide internal field |
-| Directus field schema | Directus system metadata | Field type, relation, required flag |
+| Concern                          | Recommended model                            | Example                                      |
+| -------------------------------- | -------------------------------------------- | -------------------------------------------- |
+| Sidebar route                    | `ui_pages`                                   | `/dashboard`, `/analytics`, `/collections`   |
+| Unique page layout               | `ui_pages` + `ui_sections` + `ui_components` | Analytics dashboard with charts              |
+| Dashboard widget                 | `ui_widgets`                                 | KPI card, chart, recent activity             |
+| Collection page shell            | Code component + `ui_pages`                  | Generic `CollectionPage` route               |
+| Collection list layout           | `ui_views`                                   | Contacts table, deals kanban, products cards |
+| View-specific filter/sort/search | `ui_views.query`                             | My open deals sorted by close date           |
+| Reusable named filter            | `ui_filters`                                 | Active customers, archived records           |
+| Field label/rendering/validation | `ui_fields`                                  | Format phone number, hide internal field     |
+| Directus field schema            | Directus system metadata                     | Field type, relation, required flag          |
 
 ## ERD: UI Configuration Relations
 
@@ -251,8 +252,18 @@ erDiagram
         string key UK
         string route UK
         string title
+        json translations
+        string description
+        string icon
+        string page_type
         string layout
+        string collection
+        string default_view_key
+        json props
+        json visibility
         boolean is_system
+        boolean is_enabled
+        boolean show_in_sidebar
         integer order
         json permissions
     }
@@ -369,17 +380,131 @@ erDiagram
 
 ### ui_pages
 
-Purpose: define screens and top-level layout containers.
+Purpose: define screens, routes, sidebar entries, and top-level layout containers.
+
+`ui_pages` should answer these questions:
+
+- Does this page exist?
+- What route opens it?
+- Should it appear in the sidebar?
+- Which layout shell should render it?
+- Which roles/users can access it?
+- Is this a system page that normal users cannot delete?
+
+Recommended Directus collection name: `ui_pages`.
+
+Recommended permissions:
+
+- Admin/tech lead can create, update, and delete non-system pages.
+- Normal users can read only enabled pages they have permission to access.
+- System pages should be protected from delete and key/route changes.
 
 Recommended fields:
 
-- `key` (string, unique)
-- `route` (string, unique)
-- `title` (string)
-- `layout` (string: `dashboard`, `record`, `list`, `settings`, `custom`)
-- `permissions` (json)
-- `is_system` (boolean)
-- `order` (integer)
+| Field              | Type                    | Required | Notes                                                                                                                            |
+| ------------------ | ----------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | uuid                    | yes      | Primary key.                                                                                                                     |
+| `key`              | string                  | yes      | Unique stable identifier. Use code-friendly values such as `dashboard`, `collections`, `settings`. Do not change after creation. |
+| `route`            | string                  | yes      | Unique frontend route, for example `/dashboard` or `/collections`.                                                               |
+| `title`            | string                  | yes      | Page title used in headers and browser metadata.                                                                                 |
+| `translations`     | json                    | no       | Optional localized labels by locale key.                                                                                         |
+| `description`      | text                    | no       | Internal explanation for admins/config editors.                                                                                  |
+| `icon`             | string                  | no       | Icon key from the frontend icon registry, for example `layout-dashboard`, `folder`, `settings`.                                  |
+| `page_type`        | string                  | yes      | Page behavior: `dashboard`, `workspace`, `collection_shell`, `settings`, `custom`.                                               |
+| `layout`           | string                  | yes      | Layout renderer: `dashboard`, `default`, `list`, `settings`, `blank`.                                                            |
+| `collection`       | string                  | no       | Optional Directus collection name if this page is bound to one collection. Usually empty for top-level sidebar pages.            |
+| `default_view_key` | string                  | no       | Optional default `ui_views.key` for collection-like pages.                                                                       |
+| `props`            | json                    | no       | Page-level render options, feature flags, or layout options.                                                                     |
+| `visibility`       | json                    | no       | Conditional display rules, for example feature flags or workspace rules.                                                         |
+| `permissions`      | json                    | no       | Access policy. Start as JSON; normalize later if needed.                                                                         |
+| `show_in_sidebar`  | boolean                 | yes      | Whether this page appears in the main sidebar.                                                                                   |
+| `is_enabled`       | boolean                 | yes      | Soft enable/disable flag. Disabled pages should not render.                                                                      |
+| `is_system`        | boolean                 | yes      | Locks core pages from deletion or unsafe edits.                                                                                  |
+| `order`            | integer                 | yes      | Sidebar/order sorting.                                                                                                           |
+| `user_created`     | m2o -> `directus_users` | auto     | Directus accountability field.                                                                                                   |
+| `date_created`     | datetime                | auto     | Directus accountability field.                                                                                                   |
+| `user_updated`     | m2o -> `directus_users` | auto     | Directus accountability field.                                                                                                   |
+| `date_updated`     | datetime                | auto     | Directus accountability field.                                                                                                   |
+
+Recommended field constraints:
+
+- `key` unique.
+- `route` unique.
+- `key` should match `^[a-z][a-z0-9_]*$`.
+- `route` should start with `/`.
+- `page_type` should use a fixed dropdown.
+- `layout` should use a fixed dropdown.
+- `order` should default to `100`.
+- `show_in_sidebar` should default to `true`.
+- `is_enabled` should default to `true`.
+- `is_system` should default to `false`.
+
+Recommended `page_type` values:
+
+| Value              | Meaning                                         |
+| ------------------ | ----------------------------------------------- |
+| `dashboard`        | Dashboard or analytics-style page with widgets. |
+| `workspace`        | Work area page with mixed sections/components.  |
+| `collection_shell` | Generic shell for Directus collection browsing. |
+| `settings`         | Admin/settings page.                            |
+| `custom`           | Page rendered by a custom frontend component.   |
+
+Recommended `layout` values:
+
+| Value       | Meaning                                               |
+| ----------- | ----------------------------------------------------- |
+| `default`   | Standard page layout with breadcrumbs/header/content. |
+| `dashboard` | Grid layout optimized for widgets.                    |
+| `list`      | List-first layout.                                    |
+| `settings`  | Settings layout with secondary navigation.            |
+| `blank`     | Minimal shell for special pages.                      |
+
+Example records:
+
+| key           | route          | title       | page_type          | layout      | show_in_sidebar | is_system | order |
+| ------------- | -------------- | ----------- | ------------------ | ----------- | --------------- | --------- | ----- |
+| `dashboard`   | `/dashboard`   | Dashboard   | `dashboard`        | `dashboard` | true            | true      | 10    |
+| `workspace`   | `/workspace`   | Workspace   | `workspace`        | `default`   | true            | true      | 20    |
+| `campaigns`   | `/campaigns`   | Campaigns   | `workspace`        | `default`   | true            | true      | 30    |
+| `analytics`   | `/analytics`   | Analytics   | `dashboard`        | `dashboard` | true            | true      | 40    |
+| `automation`  | `/automation`  | Automation  | `workspace`        | `default`   | true            | true      | 50    |
+| `settings`    | `/settings`    | Settings    | `settings`         | `settings`  | true            | true      | 60    |
+| `collections` | `/collections` | Collections | `collection_shell` | `default`   | true            | true      | 70    |
+
+Example `translations` JSON:
+
+```json
+{
+  "vi": "Khach Hang",
+  "en": "Customers"
+}
+```
+
+Example `permissions` JSON:
+
+```json
+{
+  "roles": ["admin", "manager"],
+  "users": [],
+  "mode": "allow"
+}
+```
+
+Example `visibility` JSON:
+
+```json
+{
+  "feature_flags": ["collections_enabled"],
+  "workspace_required": false
+}
+```
+
+Implementation notes:
+
+- `ui_pages` defines the page shell, not every widget or field inside the page.
+- Sidebar rendering should query enabled pages where `show_in_sidebar = true`, sort by `order`, then filter by `permissions`.
+- The `Collections` sidebar item should be one `ui_pages` record. Individual Directus collection children should usually be handled by the collection shell and `ui_views`, not by creating one `ui_pages` record per collection.
+- Create a separate `ui_pages` record for a collection only when that collection needs a truly custom route or custom page behavior.
 
 ### ui_sections
 
@@ -493,14 +618,14 @@ Recommended fields:
 
 Map Directus field types to frontend table and form types:
 
-| Directus type | Frontend type |
-| --- | --- |
-| `boolean` | `ColumnType.BOOLEAN` |
-| `integer`, `biginteger`, `float`, `decimal`, `numeric` | `ColumnType.NUMBER` |
-| `date` | `ColumnType.DATE` |
-| `datetime`, `timestamp` | `ColumnType.DATETIME` |
-| `time` | `ColumnType.TIME` |
-| `string`, `text`, `uuid` | `ColumnType.TEXT` |
+| Directus type                                          | Frontend type         |
+| ------------------------------------------------------ | --------------------- |
+| `boolean`                                              | `ColumnType.BOOLEAN`  |
+| `integer`, `biginteger`, `float`, `decimal`, `numeric` | `ColumnType.NUMBER`   |
+| `date`                                                 | `ColumnType.DATE`     |
+| `datetime`, `timestamp`                                | `ColumnType.DATETIME` |
+| `time`                                                 | `ColumnType.TIME`     |
+| `string`, `text`, `uuid`                               | `ColumnType.TEXT`     |
 
 This mapping can be refined by reading Directus field `meta`, `schema`, relation metadata, and `ui_fields.component`.
 
@@ -548,17 +673,17 @@ GraphQL should be treated as read-only unless there is a specific approved use c
 
 ### API Decision Matrix
 
-| Feature | Recommended API | Reason |
-| --- | --- | --- |
-| Dynamic UI config | REST | Simple config CRUD and easier governance |
-| Directus schema metadata | REST | Directus REST is strongest for schema/admin metadata |
-| Custom field creation | REST through server route | Privileged schema action |
-| Collection list | REST by default | Predictable pagination, filters, logging, and caching |
-| Collection create/update/delete | REST through server/client wrapper | Simple CRUD |
-| Saved views and filters | REST | Config records, not heavy nested reads |
-| Dashboard widgets | GraphQL read-only when useful | Multiple datasets in one request |
-| Complex detail page | GraphQL read-only when useful | Nested relations and custom projection |
-| Files and media | REST | Directus file endpoints |
+| Feature                         | Recommended API                    | Reason                                                |
+| ------------------------------- | ---------------------------------- | ----------------------------------------------------- |
+| Dynamic UI config               | REST                               | Simple config CRUD and easier governance              |
+| Directus schema metadata        | REST                               | Directus REST is strongest for schema/admin metadata  |
+| Custom field creation           | REST through server route          | Privileged schema action                              |
+| Collection list                 | REST by default                    | Predictable pagination, filters, logging, and caching |
+| Collection create/update/delete | REST through server/client wrapper | Simple CRUD                                           |
+| Saved views and filters         | REST                               | Config records, not heavy nested reads                |
+| Dashboard widgets               | GraphQL read-only when useful      | Multiple datasets in one request                      |
+| Complex detail page             | GraphQL read-only when useful      | Nested relations and custom projection                |
+| Files and media                 | REST                               | Directus file endpoints                               |
 
 ### API Checklist
 

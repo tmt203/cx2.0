@@ -1,144 +1,198 @@
-import { graphqlQuery } from "@lib/api/graphql";
-import type { DirectusCollection } from "@type/api/graphql/collections.type";
-import { getLocale } from "next-intl/server";
-import type { GroupMenu } from "../molecules/SidebarMenu";
-import type { SidebarMenu } from "../organisms/Sidebar";
-import AppLayoutTemplateClient from "./AppLayoutTemplateClient";
-import { apiGetCollections } from "@api/rest/directus/collections";
-import { DirectusField } from "@type/api/rest/directus/field.type";
-import { apiGetFields } from "@api/rest/directus/fields";
+"use client";
 
-interface AppLayoutTemplateProps {
+import { apiGetUIPages } from "@api/rest/directus/ui_pages.api";
+import { DirectusUiPage } from "@type/api/rest/directus/ui_pages.type";
+import * as LucideIcons from "lucide-react";
+import { useLocale } from "next-intl";
+import { useCallback, useLayoutEffect, useState } from "react";
+import { Sidebar } from "../organisms";
+import { SidebarMenu } from "../organisms/Sidebar";
+import type { GroupMenu } from "../molecules/SidebarMenu";
+import { apiGetFields } from "@api/rest/directus/fields.api";
+import { useAppStore } from "@/src/lib/store/appStore";
+import { apiGetCollections } from "@api/rest/directus/collections";
+
+export interface AppLayoutTemplateProps {
 	children: React.ReactNode;
 }
 
-const COLLECTIONS_QUERY = `
-	query {
-		collections {
-			collection
-			meta {
-				hidden
-				translations
-			}
-		}
-	}
-`;
+/**
+ * App Layout Template Component
+ * @Props AppLayoutTemplateProps
+ */
+const AppLayoutTemplate = ({ children }: AppLayoutTemplateProps) => {
+	const appStore = useAppStore();
 
-const getCollectionLabel = (collection: DirectusCollection, locale: string) => {
-	const translations = collection.meta?.translations;
+	// Hooks
+	const locale = useLocale();
 
-	if (Array.isArray(translations)) {
-		const match = translations.find((item) =>
-			item?.language?.toLowerCase().includes(locale.toLowerCase())
-		);
-		return match?.translation || collection.collection;
-	}
-
-	return collection.collection;
-};
-
-const mapCollectionSubGroups = (
-	collections: DirectusCollection[],
-	locale: string
-): Omit<GroupMenu, "icon" | "subGroups">[] =>
-	// Filter out hidden collections and "directus_" prefixed collections
-	collections
-		.filter(
-			(collection) => !collection.meta?.hidden && !collection.collection.startsWith("directus_")
-		)
-		.map((collection) => ({
-			id: collection.collection,
-			groupId: collection.collection,
-			label: getCollectionLabel(collection, locale),
-			href: `/collections/${collection.collection}`,
-			noTranslate: true,
-		}));
-
-const AppLayoutTemplate = async ({ children }: AppLayoutTemplateProps) => {
-	const locale = await getLocale();
-
-	let collectionSubGroups: Omit<GroupMenu, "icon" | "subGroups">[] = [];
-	let collections: DirectusCollection[] = [];
-	let fields: DirectusField[] = [];
-
-	try {
-		const response = await apiGetCollections();
-		collections = response.data || [];
-
-		// Mapping for sidebar menu
-		collectionSubGroups = mapCollectionSubGroups(collections, locale);
-	} catch (error) {
-		console.error("Error fetching collections:", error);
-	}
-
-	try {
-		const response = await apiGetFields();
-		fields = response.data || [];
-	} catch (error) {
-		console.error("Error fetching fields:", error);
-	}
-
-	const menu: SidebarMenu[] = [
+	// States
+	const [isLoading, setIsLoading] = useState<boolean>(false);
+	const [pages, setPages] = useState<DirectusUiPage[]>([]);
+	const [menu, setMenu] = useState<SidebarMenu[]>([
 		{
-			groups: [
-				{
-					icon: "CircleGauge",
-					id: "dashboard",
-					groupId: "dashboard",
-					label: "sidebar.dashboard",
-					href: "/dashboard",
-				},
-				{
-					icon: "ChartNoAxesColumn",
-					id: "workspace",
-					groupId: "workspace",
-					label: "sidebar.workspace",
-					href: "/workspace",
-				},
-				{
-					icon: "AlignStartVertical",
-					id: "campaigns",
-					groupId: "campaigns",
-					label: "sidebar.campaigns",
-					href: "/campaigns",
-				},
-				{
-					icon: "ChartArea",
-					id: "analytics",
-					groupId: "analytics",
-					label: "sidebar.analytics",
-					href: "/analytics",
-				},
-				{
-					icon: "Workflow",
-					id: "automation",
-					groupId: "automation",
-					label: "sidebar.automation",
-					href: "/automation",
-				},
-				{
-					icon: "Settings",
-					id: "settings",
-					groupId: "settings",
-					label: "sidebar.settings",
-					href: "/settings",
-				},
-				{
-					icon: "Library",
-					id: "collections",
-					groupId: "collections",
-					label: "sidebar.collections",
-					href: "/collections",
-					subGroups: collectionSubGroups,
-				},
-			],
+			groupName: "",
+			groups: [],
 		},
-	];
+	]);
+
+	/**
+	 * Mapping to sidebar menu
+	 * @param data DirectusUiPage[]
+	 */
+	const mappingToSidebarMenu = useCallback(
+		(data: DirectusUiPage[]) => {
+			if (!data || data.length === 0) {
+				setMenu([]);
+				return;
+			}
+
+			const getParentId = (parent: DirectusUiPage["parent_id"]): string | null => {
+				if (!parent) return null;
+				if (typeof parent === "string") return parent;
+				return parent.id;
+			};
+
+			const sortedData = data
+				.filter((item) => item.show_in_sidebar && item.is_enabled)
+				.sort((a, b) => a.order - b.order);
+
+			const childrenByParentId = sortedData.reduce<Record<string, DirectusUiPage[]>>(
+				(acc, item) => {
+					const parentId = getParentId(item.parent_id);
+					if (!parentId) return acc;
+
+					if (!acc[parentId]) {
+						acc[parentId] = [];
+					}
+					acc[parentId].push(item);
+					return acc;
+				},
+				{}
+			);
+
+			const topLevelItems = sortedData.filter((item) => !getParentId(item.parent_id));
+
+			const resolveIcon = (icon?: string | null): keyof typeof LucideIcons => {
+				if (icon && icon in LucideIcons) {
+					return icon as keyof typeof LucideIcons;
+				}
+				return "Circle";
+			};
+
+			const resolveLabel = (item: DirectusUiPage): string => {
+				return item.translations?.[locale] || item.title;
+			};
+
+			const groupMenu: GroupMenu[] = topLevelItems.map((item) => {
+				const label = resolveLabel(item);
+				const children = childrenByParentId[item.id] ?? [];
+				const baseMenu: GroupMenu = {
+					id: item.id,
+					label,
+					groupId: item.key,
+					icon: resolveIcon(item.icon),
+					href: item.route,
+					noTranslate: true,
+				};
+
+				if (!children.length) {
+					return baseMenu;
+				}
+
+				return {
+					...baseMenu,
+					subGroups: children.map((child) => ({
+						id: child.id,
+						label: resolveLabel(child),
+						groupId: child.key,
+						href: child.route,
+						noTranslate: true,
+					})),
+				};
+			});
+
+			setMenu([
+				{
+					groupName: "",
+					groups: groupMenu,
+				},
+			]);
+		},
+		[locale]
+	);
+
+	/**
+	 * Handle get UI pages
+	 */
+	const handleGetUiPages = useCallback(async () => {
+		try {
+			setIsLoading(true);
+			const response = await apiGetUIPages();
+			if (!response || response.data.length === 0) return;
+			setPages(response.data);
+		} catch (error) {
+			console.log(error);
+		} finally {
+			setIsLoading(false);
+		}
+	}, []);
+
+	/**
+	 * Handle get all fields
+	 */
+	const handleGetAllFields = useCallback(async () => {
+		try {
+			const response = await apiGetFields();
+			if (!response || response.data.length === 0) return;
+			appStore.setFields(response.data);
+		} catch (error) {
+			console.log(error);
+		}
+	}, []);
+
+	/**
+	 * Handle get collections
+	 */
+	const handleGetCollections = useCallback(async () => {
+		try {
+			const response = await apiGetCollections();
+			if (!response || response.data.length === 0) return;
+			appStore.setCollections(response.data);
+		} catch (error) {
+			console.log(error);
+		}
+	}, []);
+
+	/**
+	 * Retrieve data to app store
+	 */
+	const retrieveDataAppStore = useCallback(() => {
+		void Promise.all([handleGetAllFields(), handleGetCollections()]);
+	}, [handleGetAllFields, handleGetCollections]);
+
+	// Get UI pages when first load
+	useLayoutEffect(() => {
+		handleGetUiPages();
+	}, [handleGetUiPages]);
+
+	// Load shared data into the app store when first load
+	useLayoutEffect(() => {
+		retrieveDataAppStore();
+	}, [retrieveDataAppStore]);
+
+	// Mapping to sidebar menu when pages or locale changes
+	useLayoutEffect(() => {
+		if (!pages.length) return;
+		mappingToSidebarMenu(pages);
+	}, [pages, locale]);
 
 	return (
-		<AppLayoutTemplateClient menu={menu} collections={collections} fields={fields}>
-			{children}
-		</AppLayoutTemplateClient>
+		<div className="flex h-[100vh] overflow-hidden">
+			<Sidebar menu={menu} />
+
+			<div className="relative flex h-full w-full flex-col overflow-hidden">{children}</div>
+		</div>
 	);
 };
 
