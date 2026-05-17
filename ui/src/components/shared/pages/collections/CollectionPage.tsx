@@ -100,6 +100,22 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 	}, []);
 
 	/**
+	 * Handle get total records
+	 */
+	const handleGetTotalRecords = useCallback(async () => {
+		try {
+			const response = await apiGetItems(collection, {
+				["filter[status][_neq]"]: "archived",
+				["aggregate[countDistinct]"]: "id",
+			});
+			const total = (response.data[0] as any).countDistinct.id ?? 0;
+			setTotalItem(total);
+		} catch (error) {
+			console.log(error);
+		}
+	}, [collection]);
+
+	/**
 	 * Handle get data table
 	 */
 	const handleGetDataTable = useCallback(async () => {
@@ -126,31 +142,22 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 		}
 	}, [collection, page, pageSize, param, search]);
 
+	/**
+	 * Debounced search
+	 */
 	const debouncedSearch = useMemo(
 		() => debounce(() => handleGetDataTable(), 500),
 		[handleGetDataTable]
 	);
 
-	/**
-	 * Handle get total records
-	 */
-	const handleGetTotalRecords = useCallback(async () => {
-		try {
-			const response = await apiGetItems(collection, {
-				["filter[status][_neq]"]: "archived",
-				["aggregate[countDistinct]"]: "id",
-			});
-			const total = (response.data[0] as any).countDistinct.id ?? 0;
-			setTotalItem(total);
-		} catch (error) {
-			console.log(error);
-		}
-	}, [collection]);
-
 	useEffect(() => {
 		if (search.length > 0 && search.length < 5) return;
 		debouncedSearch();
 	}, [search, debouncedSearch]);
+
+	useEffect(() => {
+		handleGetTotalRecords();
+	}, [handleGetTotalRecords]);
 
 	return (
 		<DefaultPageLayout

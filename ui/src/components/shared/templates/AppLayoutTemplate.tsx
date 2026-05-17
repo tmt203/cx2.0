@@ -49,8 +49,8 @@ const AppLayoutTemplate = ({ children }: AppLayoutTemplateProps) => {
 
 			const getParentId = (parent: DirectusUiPage["parent_id"]): string | null => {
 				if (!parent) return null;
-				if (typeof parent === "string") return parent;
-				return parent.id;
+				if (typeof parent === "string" || typeof parent === "number") return String(parent);
+				return String(parent.id);
 			};
 
 			const sortedData = data
@@ -128,7 +128,7 @@ const AppLayoutTemplate = ({ children }: AppLayoutTemplateProps) => {
 	const handleGetUiPages = useCallback(async () => {
 		try {
 			setIsLoading(true);
-			const response = await apiGetUIPages();
+			const response = await apiGetUIPages({});
 			if (!response || response.data.length === 0) return;
 			setPages(response.data);
 		} catch (error) {

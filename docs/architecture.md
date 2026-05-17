@@ -51,7 +51,7 @@ flowchart TD
 
 Directus stores UI configuration in dedicated collections:
 
-- `ui_pages`: top-level screens and routes.
+- `ui_pages`: screens, routes, sidebar entries, and optional nested sub items through `parent_id`.
 - `ui_sections`: layout regions inside a page.
 - `ui_components`: renderable component definitions.
 - `ui_widgets`: dashboard or analytics widgets.
@@ -105,7 +105,7 @@ Persistent UI preferences should be saved to Directus through `ui_views` or `ui_
 
 ## Sidebar and Page Model
 
-Top-level sidebar items are pages:
+`ui_pages` supports both top-level sidebar items and nested sub items. Top-level sidebar items are pages:
 
 - Dashboard
 - Workspace
@@ -116,6 +116,8 @@ Top-level sidebar items are pages:
 - Collections
 
 Use `ui_pages` for these sidebar routes. A page can be fully custom, dashboard-like, or a shell that hosts a reusable experience.
+
+Use `ui_pages.parent_id` as a self foreign key when a page should be displayed as a sub item under another page, for example collection shortcuts under `Collections` or settings sub pages under `Settings`. Top-level items should keep `parent_id` empty.
 
 ```mermaid
 flowchart TD
@@ -249,6 +251,7 @@ erDiagram
 
     ui_pages {
         uuid id PK
+        uuid parent_id FK
         string key UK
         string route UK
         string title
@@ -356,6 +359,7 @@ erDiagram
     directus_roles ||--o{ directus_users : has
     directus_collections ||--o{ directus_fields : defines
 
+    ui_pages ||--o{ ui_pages : has_sub_items
     ui_pages ||--o{ ui_sections : contains
     ui_sections ||--o{ ui_sections : nests
     ui_pages ||--o{ ui_components : contains
@@ -380,11 +384,12 @@ erDiagram
 
 ### ui_pages
 
-Purpose: define screens, routes, sidebar entries, and top-level layout containers.
+Purpose: define screens, routes, sidebar entries, nested sub items, and top-level layout containers.
 
 `ui_pages` should answer these questions:
 
 - Does this page exist?
+- Is it a top-level page or a sub item under another page?
 - What route opens it?
 - Should it appear in the sidebar?
 - Which layout shell should render it?
@@ -404,6 +409,7 @@ Recommended fields:
 | Field              | Type                    | Required | Notes                                                                                                                            |
 | ------------------ | ----------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `id`               | uuid                    | yes      | Primary key.                                                                                                                     |
+| `parent_id`        | m2o -> `ui_pages`       | no       | Optional self foreign key used to create nested page sub items. Empty means this page is a top-level item.                       |
 | `key`              | string                  | yes      | Unique stable identifier. Use code-friendly values such as `dashboard`, `collections`, `settings`. Do not change after creation. |
 | `route`            | string                  | yes      | Unique frontend route, for example `/dashboard` or `/collections`.                                                               |
 | `title`            | string                  | yes      | Page title used in headers and browser metadata.                                                                                 |
@@ -430,6 +436,9 @@ Recommended field constraints:
 
 - `key` unique.
 - `route` unique.
+- `parent_id` should reference `ui_pages.id`.
+- `parent_id` must be empty for top-level sidebar items.
+- A page must not use itself as `parent_id`; circular parent chains must be blocked in application validation.
 - `key` should match `^[a-z][a-z0-9_]*$`.
 - `route` should start with `/`.
 - `page_type` should use a fixed dropdown.
@@ -461,15 +470,17 @@ Recommended `layout` values:
 
 Example records:
 
-| key           | route          | title       | page_type          | layout      | show_in_sidebar | is_system | order |
-| ------------- | -------------- | ----------- | ------------------ | ----------- | --------------- | --------- | ----- |
-| `dashboard`   | `/dashboard`   | Dashboard   | `dashboard`        | `dashboard` | true            | true      | 10    |
-| `workspace`   | `/workspace`   | Workspace   | `workspace`        | `default`   | true            | true      | 20    |
-| `campaigns`   | `/campaigns`   | Campaigns   | `workspace`        | `default`   | true            | true      | 30    |
-| `analytics`   | `/analytics`   | Analytics   | `dashboard`        | `dashboard` | true            | true      | 40    |
-| `automation`  | `/automation`  | Automation  | `workspace`        | `default`   | true            | true      | 50    |
-| `settings`    | `/settings`    | Settings    | `settings`         | `settings`  | true            | true      | 60    |
-| `collections` | `/collections` | Collections | `collection_shell` | `default`   | true            | true      | 70    |
+| key           | parent_key    | route                   | title       | page_type          | layout      | show_in_sidebar | is_system | order |
+| ------------- | ------------- | ----------------------- | ----------- | ------------------ | ----------- | --------------- | --------- | ----- |
+| `dashboard`   | empty         | `/dashboard`            | Dashboard   | `dashboard`        | `dashboard` | true            | true      | 10    |
+| `workspace`   | empty         | `/workspace`            | Workspace   | `workspace`        | `default`   | true            | true      | 20    |
+| `campaigns`   | empty         | `/campaigns`            | Campaigns   | `workspace`        | `default`   | true            | true      | 30    |
+| `analytics`   | empty         | `/analytics`            | Analytics   | `dashboard`        | `dashboard` | true            | true      | 40    |
+| `automation`  | empty         | `/automation`           | Automation  | `workspace`        | `default`   | true            | true      | 50    |
+| `settings`    | empty         | `/settings`             | Settings    | `settings`         | `settings`  | true            | true      | 60    |
+| `collections` | empty         | `/collections`          | Collections | `collection_shell` | `default`   | true            | true      | 70    |
+| `contacts`    | `collections` | `/collections/contacts` | Contacts    | `collection_shell` | `default`   | true            | false     | 10    |
+| `deals`       | `collections` | `/collections/deals`    | Deals       | `collection_shell` | `default`   | true            | false     | 20    |
 
 Example `translations` JSON:
 
@@ -502,9 +513,9 @@ Example `visibility` JSON:
 Implementation notes:
 
 - `ui_pages` defines the page shell, not every widget or field inside the page.
-- Sidebar rendering should query enabled pages where `show_in_sidebar = true`, sort by `order`, then filter by `permissions`.
-- The `Collections` sidebar item should be one `ui_pages` record. Individual Directus collection children should usually be handled by the collection shell and `ui_views`, not by creating one `ui_pages` record per collection.
-- Create a separate `ui_pages` record for a collection only when that collection needs a truly custom route or custom page behavior.
+- Sidebar rendering should query enabled pages where `show_in_sidebar = true`, filter by `permissions`, group by `parent_id`, and sort siblings by `order`.
+- The `Collections` sidebar item should be one top-level `ui_pages` record. Directus collection shortcuts may be represented as child `ui_pages` records using `parent_id = collections.id` when they need to appear as sidebar sub items.
+- Create a separate child `ui_pages` record for a collection only when it needs a visible sub item, a truly custom route, or custom page behavior.
 
 ### ui_sections
 
@@ -758,7 +769,7 @@ To implement saved views, add API support for reading/writing `ui_views` and upd
 
 ## Implementation Roadmap
 
-1. Define Directus collections for `ui_pages`, `ui_sections`, `ui_components`, `ui_widgets`, `ui_views`, `ui_filters`, `ui_view_filters`, and `ui_fields`.
+1. Define Directus collections for `ui_pages`, `ui_sections`, `ui_components`, `ui_widgets`, `ui_views`, `ui_filters`, `ui_view_filters`, and `ui_fields`, including `ui_pages.parent_id` as a self foreign key.
 2. Add TypeScript types and runtime validation for UI config records.
 3. Add REST wrappers for UI config and Directus metadata.
 4. Update `CollectionPage` to load `ui_views`, `ui_filters`, and `ui_fields`.
