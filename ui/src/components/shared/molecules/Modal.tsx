@@ -97,7 +97,7 @@ const Modal = ({
 						{/* Area: Header Modal */}
 						<div className="h-12 flex-none border-b border-gray-200 px-5 py-3 dark:border-surface-400/30">
 							<div className="flex items-center justify-between">
-								<DialogTitle className="font-semibold text-gray-800 dark:text-gray-100">
+								<DialogTitle className="text-lg font-semibold text-gray-800 dark:text-gray-100">
 									{title}
 								</DialogTitle>
 								<button

@@ -84,7 +84,7 @@ export const apiUpdateItem = async <T = Record<string, unknown>>(
  * @returns DirectusResponse<null>
  */
 export const apiDeleteItem = async (collection: string, id: string | number) => {
-	return await apiDelete<DirectusResponse<null>>({
+	return await apiDelete<null>({
 		url: `${PATH}/${collection}/${id}`,
 		token: TOKEN,
 	});

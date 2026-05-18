@@ -35,7 +35,10 @@ const apiRequest = async <T>(method: ApiMethod, request: Request) => {
 	};
 
 	const response = await fetch(finalUrl, options);
-	return response.json() as T;
+	if (response.status === 204) return undefined as T;
+	const responseText = await response.text();
+	if (!responseText) return undefined as T;
+	return JSON.parse(responseText) as T;
 };
 
 /**

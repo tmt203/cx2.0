@@ -43,6 +43,7 @@
 		"send": "Gửi"
 	},
 	"common_data": {
+		"record": "Dữ liệu",
 		"lead": "Khách hàng",
 		"oa": "Thương hiệu",
 		"list": "Danh sách khách hàng",
@@ -58,6 +59,12 @@
 		"phone_number": "Số điện thoại"
 	},
 	"action": {
+		"add_record": "Thêm mới",
+		"edit_record": "Chỉnh sửa",
+		"delete_record": "Xóa",
+		"confirm_delete": "Xóa dữ liệu này?",
+		"confirm_delete_all": "Xóa tất cả dữ liệu?",
+		"confirm_delete_description": "Các thông tin và dữ liệu liên quan sẽ được xoá hoặc ẩn đi và không thể khôi phục chúng",
 		"download_excel": "Tải xuống file excel",
 		"export_excel_csv": "Xuất file Excel/CSV"
 	},

@@ -103,6 +103,7 @@
 		"placeholder": "Enter {data}..."
 	},
 	"common_data": {
+		"record": "Record",
 		"lead": "Lead",
 		"list": "Customer List",
 		"oa": "Brand Name",
@@ -119,6 +120,12 @@
 		"phone_number": "Phone number"
 	},
 	"action": {
+		"add_record": "Add new record",
+		"edit_record": "Edit record",
+		"delete_record": "Delete record",
+		"confirm_delete": "Are you sure you want to delete this record?",
+		"confirm_delete_all": "Are you sure you want to delete all records?",
+		"confirm_delete_description": "The related information and data will be deleted or hidden and cannot be recovered.",
 		"download_excel": "Download Excel file",
 		"export_excel_csv": "Export Excel/CSV file"
 	},

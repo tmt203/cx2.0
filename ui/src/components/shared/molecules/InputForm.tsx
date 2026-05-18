@@ -8,7 +8,16 @@ import { Asterisk, Eye, EyeOff, Info } from "lucide-react";
 import { useTranslations } from "next-intl";
 import React, { FocusEventHandler, useCallback, useMemo, useState } from "react";
 
-export type InputType = "text" | "password" | "email" | "number" | "tel" | "url";
+export type InputType =
+	| "text"
+	| "password"
+	| "email"
+	| "number"
+	| "tel"
+	| "url"
+	| "date"
+	| "time"
+	| "datetime-local";
 type InputState = "default" | "error" | "success" | "warning";
 
 export interface InputFormProps
