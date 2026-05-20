@@ -32,12 +32,6 @@ const NotFound = () => {
 									<div className="mb-6">
 										Hmm...this page doesn't exist. Try searching for something else!
 									</div>
-									<Link
-										href="/sns/dashboard"
-										className="btn bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white"
-									>
-										Back To Dashboard
-									</Link>
 								</div>
 							</div>
 						</div>

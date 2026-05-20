@@ -3,7 +3,6 @@
 import type { DirectusCollection } from "@type/api/graphql/collections.type";
 import type { DirectusField } from "@type/api/rest/directus/field.type";
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
 
 export type SidebarMetadata = {
 	open: boolean;
@@ -47,35 +46,20 @@ const initialState = {
 	collections: [],
 } satisfies Pick<AppStoreState, "sidebar" | "collections" | "fields">;
 
-export const useAppStore = create<AppStoreState>()(
-	persist(
-		(set) => ({
-			...initialState,
-			setSidebarOpen: (open) =>
-				set((state) => ({
-					sidebar: {
-						...state.sidebar,
-						open: typeof open === "function" ? open(state.sidebar.open) : open,
-					},
-				})),
-			setSidebarExpanded: (expanded) =>
-				set((state) => ({ sidebar: { ...state.sidebar, expanded } })),
+export const useAppStore = create<AppStoreState>()((set) => ({
+	...initialState,
+	setSidebarOpen: (open) =>
+		set((state) => ({
+			sidebar: {
+				...state.sidebar,
+				open: typeof open === "function" ? open(state.sidebar.open) : open,
+			},
+		})),
+	setSidebarExpanded: (expanded) => set((state) => ({ sidebar: { ...state.sidebar, expanded } })),
 
-			setFields: (fields) => set(() => ({ fields })),
-			clearFields: () => set(() => ({ fields: [] })),
+	setFields: (fields) => set(() => ({ fields })),
+	clearFields: () => set(() => ({ fields: [] })),
 
-			setCollections: (collections) => set(() => ({ collections })),
-			clearCollections: () => set(() => ({ collections: [] })),
-		}),
-		{
-			name: "cx-app-store",
-			version: 1,
-			storage: createJSONStorage(() => localStorage),
-			partialize: (state) => ({
-				sidebar: state.sidebar,
-				collections: state.collections,
-				fields: state.fields,
-			}),
-		}
-	)
-);
+	setCollections: (collections) => set(() => ({ collections })),
+	clearCollections: () => set(() => ({ collections: [] })),
+}));

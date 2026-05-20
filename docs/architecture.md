@@ -105,7 +105,46 @@ Persistent UI preferences should be saved to Directus through `ui_views` or `ui_
 
 ## Sidebar and Page Model
 
-`ui_pages` supports both top-level sidebar items and nested sub items. Top-level sidebar items are pages:
+`ui_pages` supports both sidebar groups, top-level sidebar items, and nested sub items. This mirrors the current frontend contract:
+
+```ts
+type SidebarProps = {
+  variant?: "default" | "v2";
+  menu: Array<{
+    groupName?: string;
+    groupNameNoTranslate?: boolean;
+    groups: Array<{
+      id: string;
+      label: string;
+      groupId: string;
+      icon?: LucideIconName | null;
+      noTranslate?: boolean;
+      href?: string;
+      subGroups?: Array<{
+        id: string;
+        label: string;
+        groupId: string;
+        noTranslate?: boolean;
+        href?: string;
+      }>;
+    }>;
+  }>;
+};
+```
+
+In this model:
+
+- One `ui_pages` record maps to one `GroupMenu` item.
+- `ui_pages.parent_id` maps child records into `GroupMenu.subGroups`.
+- `ui_pages.sidebar_group_key` groups top-level records into separate `SidebarMenu` blocks.
+- `ui_pages.sidebar_group_label` becomes `SidebarMenu.groupName` as an i18n key.
+- `ui_pages.sidebar_group_translations` can become `SidebarMenu.groupName` with `groupNameNoTranslate = true`.
+- `ui_pages.title` / `translations` become `GroupMenu.label`.
+- `ui_pages.key` becomes `GroupMenu.groupId`.
+- `ui_pages.route` becomes `GroupMenu.href`.
+- `ui_pages.icon` becomes `GroupMenu.icon` for top-level records.
+
+Top-level sidebar items are pages:
 
 - Dashboard
 - Workspace
@@ -118,6 +157,14 @@ Persistent UI preferences should be saved to Directus through `ui_views` or `ui_
 Use `ui_pages` for these sidebar routes. A page can be fully custom, dashboard-like, or a shell that hosts a reusable experience.
 
 Use `ui_pages.parent_id` as a self foreign key when a page should be displayed as a sub item under another page, for example collection shortcuts under `Collections` or settings sub pages under `Settings`. Top-level items should keep `parent_id` empty.
+
+Use `sidebar_group_key`, `sidebar_group_label`, and `sidebar_group_order` when the sidebar needs multiple visual menu blocks, for example:
+
+- `main`: Dashboard, Workspace, Campaigns, Analytics.
+- `data`: Collections and collection shortcuts.
+- `admin`: Automation, Settings.
+
+If the sidebar should render as one block, keep `sidebar_group_key = main` and `sidebar_group_label` empty for all top-level records.
 
 ```mermaid
 flowchart TD
@@ -262,6 +309,11 @@ erDiagram
         string layout
         string collection
         string default_view_key
+        string sidebar_group_key
+        string sidebar_group_label
+        json sidebar_group_translations
+        integer sidebar_group_order
+        integer sidebar_order
         json props
         json visibility
         boolean is_system
@@ -420,6 +472,11 @@ Recommended fields:
 | `layout`           | string                  | yes      | Layout renderer: `dashboard`, `default`, `list`, `settings`, `blank`.                                                            |
 | `collection`       | string                  | no       | Optional Directus collection name if this page is bound to one collection. Usually empty for top-level sidebar pages.            |
 | `default_view_key` | string                  | no       | Optional default `ui_views.key` for collection-like pages.                                                                       |
+| `sidebar_group_key` | string                 | yes      | Sidebar block identifier. Maps to one `SidebarMenu` item in `SidebarProps.menu`. Default `main`.                                |
+| `sidebar_group_label` | string              | no       | Optional translation key or display label for the sidebar block header. Empty renders no group header.                           |
+| `sidebar_group_translations` | json         | no       | Optional localized sidebar group label by locale key.                                                                            |
+| `sidebar_group_order` | integer              | yes      | Sort order for sidebar blocks. Default `100`.                                                                                    |
+| `sidebar_order`    | integer                 | yes      | Sort order inside the sidebar block or inside a parent submenu. Default copies `order`.                                          |
 | `props`            | json                    | no       | Page-level render options, feature flags, or layout options.                                                                     |
 | `visibility`       | json                    | no       | Conditional display rules, for example feature flags or workspace rules.                                                         |
 | `permissions`      | json                    | no       | Access policy. Start as JSON; normalize later if needed.                                                                         |
@@ -443,6 +500,9 @@ Recommended field constraints:
 - `route` should start with `/`.
 - `page_type` should use a fixed dropdown.
 - `layout` should use a fixed dropdown.
+- `sidebar_group_key` should default to `main`.
+- `sidebar_group_order` should default to `100`.
+- `sidebar_order` should default to `order`.
 - `order` should default to `100`.
 - `show_in_sidebar` should default to `true`.
 - `is_enabled` should default to `true`.
@@ -470,17 +530,17 @@ Recommended `layout` values:
 
 Example records:
 
-| key           | parent_key    | route                   | title       | page_type          | layout      | show_in_sidebar | is_system | order |
-| ------------- | ------------- | ----------------------- | ----------- | ------------------ | ----------- | --------------- | --------- | ----- |
-| `dashboard`   | empty         | `/dashboard`            | Dashboard   | `dashboard`        | `dashboard` | true            | true      | 10    |
-| `workspace`   | empty         | `/workspace`            | Workspace   | `workspace`        | `default`   | true            | true      | 20    |
-| `campaigns`   | empty         | `/campaigns`            | Campaigns   | `workspace`        | `default`   | true            | true      | 30    |
-| `analytics`   | empty         | `/analytics`            | Analytics   | `dashboard`        | `dashboard` | true            | true      | 40    |
-| `automation`  | empty         | `/automation`           | Automation  | `workspace`        | `default`   | true            | true      | 50    |
-| `settings`    | empty         | `/settings`             | Settings    | `settings`         | `settings`  | true            | true      | 60    |
-| `collections` | empty         | `/collections`          | Collections | `collection_shell` | `default`   | true            | true      | 70    |
-| `contacts`    | `collections` | `/collections/contacts` | Contacts    | `collection_shell` | `default`   | true            | false     | 10    |
-| `deals`       | `collections` | `/collections/deals`    | Deals       | `collection_shell` | `default`   | true            | false     | 20    |
+| key           | parent_key    | route                   | title       | sidebar_group_key | sidebar_group_label | sidebar_group_order | sidebar_order | icon            |
+| ------------- | ------------- | ----------------------- | ----------- | ----------------- | ------------------- | ------------------- | ------------- | --------------- |
+| `dashboard`   | empty         | `/dashboard`            | Dashboard   | `main`            | empty               | 10                  | 10            | `LayoutDashboard` |
+| `workspace`   | empty         | `/workspace`            | Workspace   | `main`            | empty               | 10                  | 20            | `BriefcaseBusiness` |
+| `campaigns`   | empty         | `/campaigns`            | Campaigns   | `main`            | empty               | 10                  | 30            | `Megaphone`     |
+| `analytics`   | empty         | `/analytics`            | Analytics   | `main`            | empty               | 10                  | 40            | `ChartNoAxesCombined` |
+| `collections` | empty         | `/collections`          | Collections | `data`            | `sidebar.data`      | 20                  | 10            | `Database`      |
+| `contacts`    | `collections` | `/collections/contacts` | Contacts    | `data`            | `sidebar.data`      | 20                  | 10            | empty           |
+| `deals`       | `collections` | `/collections/deals`    | Deals       | `data`            | `sidebar.data`      | 20                  | 20            | empty           |
+| `automation`  | empty         | `/automation`           | Automation  | `admin`           | `sidebar.admin`     | 30                  | 10            | `Workflow`      |
+| `settings`    | empty         | `/settings`             | Settings    | `admin`           | `sidebar.admin`     | 30                  | 20            | `Settings`      |
 
 Example `translations` JSON:
 
@@ -513,9 +573,33 @@ Example `visibility` JSON:
 Implementation notes:
 
 - `ui_pages` defines the page shell, not every widget or field inside the page.
-- Sidebar rendering should query enabled pages where `show_in_sidebar = true`, filter by `permissions`, group by `parent_id`, and sort siblings by `order`.
+- Sidebar rendering should query enabled pages where `show_in_sidebar = true`, filter by `permissions`, group top-level pages by `sidebar_group_key`, sort sidebar groups by `sidebar_group_order`, sort siblings by `sidebar_order`, and map children through `parent_id`.
 - The `Collections` sidebar item should be one top-level `ui_pages` record. Directus collection shortcuts may be represented as child `ui_pages` records using `parent_id = collections.id` when they need to appear as sidebar sub items.
 - Create a separate child `ui_pages` record for a collection only when it needs a visible sub item, a truly custom route, or custom page behavior.
+
+Recommended frontend mapping:
+
+```ts
+const sidebarMenu = sidebarGroups.map((group) => ({
+  groupName: group.label,
+  groupNameNoTranslate: group.hasDirectusTranslation,
+  groups: group.pages.map((page) => ({
+    id: page.id,
+    label: resolveLabel(page),
+    groupId: page.key,
+    icon: resolveIcon(page.icon),
+    href: page.route,
+    noTranslate: true,
+    subGroups: childrenByParentId[page.id]?.map((child) => ({
+      id: child.id,
+      label: resolveLabel(child),
+      groupId: child.key,
+      href: child.route,
+      noTranslate: true,
+    })),
+  })),
+}));
+```
 
 ### ui_sections
 

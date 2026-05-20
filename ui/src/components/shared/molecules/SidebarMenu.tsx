@@ -22,6 +22,7 @@ export interface SidebarMenuProps {
 	groups: GroupMenu[];
 	sidebarOpen?: boolean;
 	groupName?: string;
+	groupNameNoTranslate?: boolean;
 	className?: string;
 	onToggleSidebar: (value: boolean) => void;
 }
@@ -34,6 +35,7 @@ const SidebarMenu = ({
 	groups,
 	className,
 	groupName,
+	groupNameNoTranslate,
 	expandOnly,
 	sidebarOpen,
 	onToggleSidebar,
@@ -74,7 +76,7 @@ const SidebarMenu = ({
 						"!hidden": !sidebarOpen,
 					})}
 				>
-					{groupName && t(groupName)}
+					{groupName && (groupNameNoTranslate ? groupName : t(groupName))}
 				</span>
 			</h3>
 			<ul className="mt-3">

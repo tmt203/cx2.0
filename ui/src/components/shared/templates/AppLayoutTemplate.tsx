@@ -1,7 +1,6 @@
 "use client";
 
-import { apiGetUIPages } from "@api/rest/directus/ui_pages.api";
-import { DirectusUiPage } from "@type/api/rest/directus/ui_pages.type";
+import { apiGetUiSidebarItems } from "@api/rest/directus/ui_sidebar_items.api";
 import * as LucideIcons from "lucide-react";
 import { useLocale } from "next-intl";
 import { useCallback, useLayoutEffect, useState } from "react";
@@ -11,6 +10,7 @@ import type { GroupMenu } from "../molecules/SidebarMenu";
 import { apiGetFields } from "@api/rest/directus/fields.api";
 import { useAppStore } from "@/src/lib/store/appStore";
 import { apiGetCollections } from "@api/rest/directus/collections";
+import type { UiSidebarItem } from "@type/api/rest/directus/ui_sidebar_items.type";
 
 export interface AppLayoutTemplateProps {
 	children: React.ReactNode;
@@ -27,110 +27,152 @@ const AppLayoutTemplate = ({ children }: AppLayoutTemplateProps) => {
 	const locale = useLocale();
 
 	// States
+	const [sidebarItems, setSidebarItems] = useState<UiSidebarItem[]>([]);
+	const [menu, setMenu] = useState<SidebarMenu[]>([]);
 	const [isLoading, setIsLoading] = useState<boolean>(false);
-	const [pages, setPages] = useState<DirectusUiPage[]>([]);
-	const [menu, setMenu] = useState<SidebarMenu[]>([
-		{
-			groupName: "",
-			groups: [],
-		},
-	]);
 
 	/**
 	 * Mapping to sidebar menu
-	 * @param data DirectusUiPage[]
+	 * @param data Record<string, unknown>[]
 	 */
 	const mappingToSidebarMenu = useCallback(
-		(data: DirectusUiPage[]) => {
+		(data: UiSidebarItem[]) => {
 			if (!data || data.length === 0) {
 				setMenu([]);
 				return;
 			}
 
-			const getParentId = (parent: DirectusUiPage["parent_id"]): string | null => {
-				if (!parent) return null;
-				if (typeof parent === "string" || typeof parent === "number") return String(parent);
-				return String(parent.id);
+			const isVisible = (item: UiSidebarItem) =>
+				(item.is_enabled ?? true) && (item.is_visible ?? true);
+			const getLabel = (item: UiSidebarItem) => item.translations?.[locale]?.title ?? item.title;
+			const resolveIcon = (icon?: string | null): keyof typeof LucideIcons | undefined => {
+				if (!icon) return undefined;
+				return icon in LucideIcons ? (icon as keyof typeof LucideIcons) : undefined;
 			};
-
-			const sortedData = data
-				.filter((item) => item.show_in_sidebar && item.is_enabled)
-				.sort((a, b) => a.order - b.order);
-
-			const childrenByParentId = sortedData.reduce<Record<string, DirectusUiPage[]>>(
-				(acc, item) => {
-					const parentId = getParentId(item.parent_id);
-					if (!parentId) return acc;
-
-					if (!acc[parentId]) {
-						acc[parentId] = [];
-					}
-					acc[parentId].push(item);
-					return acc;
-				},
-				{}
-			);
-
-			const topLevelItems = sortedData.filter((item) => !getParentId(item.parent_id));
-
-			const resolveIcon = (icon?: string | null): keyof typeof LucideIcons => {
-				if (icon && icon in LucideIcons) {
-					return icon as keyof typeof LucideIcons;
+			const resolveRoute = (item: UiSidebarItem) => {
+				if (item.page_id && typeof item.page_id === "object") {
+					return item.page_id.route ?? undefined;
 				}
-				return "Circle";
+				return undefined;
 			};
+			const sortByOrder = (a: UiSidebarItem, b: UiSidebarItem) =>
+				(a.sort_order ?? 0) - (b.sort_order ?? 0);
 
-			const resolveLabel = (item: DirectusUiPage): string => {
-				return item.translations?.[locale] || item.title;
-			};
-
-			const groupMenu: GroupMenu[] = topLevelItems.map((item) => {
-				const label = resolveLabel(item);
-				const children = childrenByParentId[item.id] ?? [];
-				const baseMenu: GroupMenu = {
-					id: item.id,
-					label,
-					groupId: item.key,
-					icon: resolveIcon(item.icon),
-					href: item.route,
-					noTranslate: true,
-				};
-
-				if (!children.length) {
-					return baseMenu;
-				}
-
-				return {
-					...baseMenu,
-					subGroups: children.map((child) => ({
-						id: child.id,
-						label: resolveLabel(child),
-						groupId: child.key,
-						href: child.route,
-						noTranslate: true,
-					})),
-				};
+			const visibleItems = data.filter(isVisible).sort(sortByOrder);
+			const byParent = new Map<string | null, UiSidebarItem[]>();
+			visibleItems.forEach((item) => {
+				const parentId = item.parent_id ?? null;
+				const list = byParent.get(parentId) ?? [];
+				list.push(item);
+				byParent.set(parentId, list);
 			});
 
-			setMenu([
-				{
+			const rootItems = (byParent.get(null) ?? []).sort(sortByOrder);
+			const groupItems = rootItems.filter((item) => item.type === "group");
+			const groupItemsWithChildren = groupItems.filter(
+				(item) => (byParent.get(item.id) ?? []).length > 0
+			);
+			const groupItemsWithoutChildren = groupItems.filter(
+				(item) => (byParent.get(item.id) ?? []).length === 0
+			);
+			const ungroupedRoot = rootItems
+				.filter((item) => item.type !== "group")
+				.concat(groupItemsWithoutChildren);
+
+			const menus: SidebarMenu[] = groupItemsWithChildren.reduce<SidebarMenu[]>((acc, group) => {
+				const children = (byParent.get(group.id) ?? []).sort(sortByOrder);
+				const groups: GroupMenu[] = children.map((child) => {
+					if (child.type === "collapse") {
+						const subGroups = (byParent.get(child.id) ?? []).sort(sortByOrder).map((sub) => ({
+							id: sub.id,
+							label: getLabel(sub),
+							groupId: child.id,
+							href: resolveRoute(sub),
+							noTranslate: true,
+						}));
+						return {
+							id: child.id,
+							label: getLabel(child),
+							groupId: group.id,
+							icon: resolveIcon(child.icon),
+							href: resolveRoute(child),
+							noTranslate: true,
+							subGroups,
+						};
+					}
+
+					return {
+						id: child.id,
+						label: getLabel(child),
+						groupId: group.id,
+						icon: resolveIcon(child.icon),
+						href: resolveRoute(child),
+						noTranslate: true,
+					};
+				});
+
+				if (!groups.length) return acc;
+				acc.push({
+					groupName: getLabel(group),
+					groupNameNoTranslate: true,
+					groups,
+				});
+				return acc;
+			}, []);
+
+			if (ungroupedRoot.length) {
+				const groups: GroupMenu[] = ungroupedRoot.map((item) => {
+					if (item.type === "collapse") {
+						const subGroups = (byParent.get(item.id) ?? []).sort(sortByOrder).map((sub) => ({
+							id: sub.id,
+							label: getLabel(sub),
+							groupId: item.id,
+							href: resolveRoute(sub),
+							noTranslate: true,
+						}));
+						return {
+							id: item.id,
+							label: getLabel(item),
+							groupId: item.id,
+							icon: resolveIcon(item.icon),
+							href: resolveRoute(item),
+							noTranslate: true,
+							subGroups,
+						};
+					}
+
+					return {
+						id: item.id,
+						label: getLabel(item),
+						groupId: item.id,
+						icon: resolveIcon(item.icon),
+						href: resolveRoute(item),
+						noTranslate: true,
+					};
+				});
+
+				menus.push({
 					groupName: "",
-					groups: groupMenu,
-				},
-			]);
+					groupNameNoTranslate: true,
+					groups,
+				});
+			}
+
+			setMenu(menus);
 		},
 		[locale]
 	);
 
 	/**
-	 * Handle get UI pages
+	 * Handle get UI sidebar items
 	 */
-	const handleGetUiPages = useCallback(async () => {
+	const handleGetUiSidebarItems = useCallback(async () => {
+		setIsLoading(true);
 		try {
-			setIsLoading(true);
-			const response = await apiGetUIPages({});
+			const pageFields = "*,page_id.key,page_id.route";
+			const response = await apiGetUiSidebarItems({ fields: pageFields });
 			if (!response || response.data.length === 0) return;
-			setPages(response.data);
+			setSidebarItems(response.data);
 		} catch (error) {
 			console.log(error);
 		} finally {
@@ -171,21 +213,21 @@ const AppLayoutTemplate = ({ children }: AppLayoutTemplateProps) => {
 		void Promise.all([handleGetAllFields(), handleGetCollections()]);
 	}, [handleGetAllFields, handleGetCollections]);
 
-	// Get UI pages when first load
-	useLayoutEffect(() => {
-		handleGetUiPages();
-	}, [handleGetUiPages]);
-
 	// Load shared data into the app store when first load
 	useLayoutEffect(() => {
 		retrieveDataAppStore();
 	}, [retrieveDataAppStore]);
 
-	// Mapping to sidebar menu when pages or locale changes
+	// Get UI sidebar items when first load
 	useLayoutEffect(() => {
-		if (!pages.length) return;
-		mappingToSidebarMenu(pages);
-	}, [pages, locale]);
+		handleGetUiSidebarItems();
+	}, [handleGetUiSidebarItems]);
+
+	// Mapping to sidebar menu when items or locale changes
+	useLayoutEffect(() => {
+		if (!sidebarItems.length) return;
+		mappingToSidebarMenu(sidebarItems);
+	}, [sidebarItems, locale]);
 
 	return (
 		<div className="flex h-[100vh] overflow-hidden">

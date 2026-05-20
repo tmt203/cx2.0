@@ -1,0 +1,109 @@
+import { apiGetUIPages } from "@api/rest/directus/ui_pages.api";
+import CollectionPage from "@components/shared/pages/collections/CollectionPage";
+import { customPageRegistry } from "@components/shared/pages/customPageRegistry";
+import { notFound } from "next/navigation";
+
+export interface PageResolverProps {
+	slug?: string[];
+}
+
+/**
+ * Normalize route from slug array
+ * @param slug? string[]
+ */
+const normalizeRoute = (slug?: string[]) => {
+	if (!slug?.length) return "/";
+	return `/${slug.filter(Boolean).join("/")}`;
+};
+
+/**
+ * Get all possible route candidates from a given route
+ * @param route string
+ */
+const getRouteCandidates = (route: string) => {
+	const segments = route.split("/").filter(Boolean);
+	const candidates = [];
+
+	if (!segments.length) return ["/"];
+
+	for (let index = segments.length; index > 0; index -= 1) {
+		candidates.push(`/${segments.slice(0, index).join("/")}`);
+	}
+
+	return candidates;
+};
+
+/**
+ * Get matched page from Directus ui_pages based on route candidates
+ * @param route string
+ */
+const getMatchedPage = async (route: string) => {
+	const candidates = getRouteCandidates(route);
+
+	for (const candidate of candidates) {
+		const response = await apiGetUIPages({ ["filter[route][_eq]"]: candidate, limit: 1 });
+		const page = response?.data?.[0];
+
+		if (page) {
+			return {
+				page,
+				matchedRoute: candidate,
+			};
+		}
+	}
+
+	return null;
+};
+
+/**
+ * Get trailing segments after matched route to determine collection and record id for collection page
+ * @param route string
+ * @param matchedRoute string
+ */
+const getTrailingSegments = (route: string, matchedRoute: string) => {
+	const routeSegments = route.split("/").filter(Boolean);
+	const matchedSegments = matchedRoute.split("/").filter(Boolean);
+	return routeSegments.slice(matchedSegments.length);
+};
+
+/**
+ * Resolve app pages from Directus ui_pages.
+ * @props PageResolverProps
+ */
+const PageResolver = async ({ slug }: PageResolverProps) => {
+	const route = normalizeRoute(slug);
+	const matched = await getMatchedPage(route);
+
+	console.log("route:", route);
+	console.log("matched:", matched);
+
+	if (!matched || matched.page.is_enabled === false) notFound();
+
+	const { page, matchedRoute } = matched;
+	const trailingSegments = getTrailingSegments(route, matchedRoute);
+
+	if (page.page_type === "collection") {
+		const collection = page.collection_key ?? "";
+		const recordId = collection ? trailingSegments[0] : "";
+
+		console.log("collection:", collection);
+		console.log("recordId:", recordId);
+
+		if (!collection) notFound();
+
+		return <CollectionPage collection={collection} recordId={recordId} />;
+	}
+
+	if (page.page_type === "custom") {
+		const componentKey = page.component_key ?? page.key;
+		const Component = componentKey ? customPageRegistry[componentKey] : undefined;
+
+		if (!Component) notFound();
+
+		return <Component page={page} />;
+	}
+
+	notFound();
+};
+
+export default PageResolver;
