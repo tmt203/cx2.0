@@ -37,6 +37,7 @@ flowchart TD
     Directus --> BusinessData[Business Collections]
 
     UiConfig --> Pages[ui_pages]
+    UiConfig --> SidebarItems[ui_sidebar_items]
     UiConfig --> Sections[ui_sections]
     UiConfig --> Components[ui_components]
     UiConfig --> Widgets[ui_widgets]
@@ -51,7 +52,8 @@ flowchart TD
 
 Directus stores UI configuration in dedicated collections:
 
-- `ui_pages`: screens, routes, sidebar entries, and optional nested sub items through `parent_id`.
+- `ui_pages`: screens, frontend routes, page renderer type, layout shell, page props, and access rules.
+- `ui_sidebar_items`: sidebar navigation tree. Items can point to real pages through `page_id`, or act only as groups/collapsible containers through `parent_id`.
 - `ui_sections`: layout regions inside a page.
 - `ui_components`: renderable component definitions.
 - `ui_widgets`: dashboard or analytics widgets.
@@ -64,10 +66,9 @@ Common fields for configurable records:
 - `key`: unique stable identifier.
 - `label` or `title`: display name.
 - `translations`: JSON for localized labels.
-- `type`: layout, component, widget, field, or view type.
+- `type`: layout, component, widget, field, view, or sidebar item type.
 - `props`: JSON configuration for rendering.
-- `order`: display order.
-- `visibility`: conditional display rules.
+- `sort_order` or `order`: display order.
 - `permissions`: role, user, team, or feature access rules.
 
 ### Directus Schema Metadata
@@ -87,10 +88,11 @@ The frontend reads Directus metadata, then merges it with `ui_fields` to decide 
 The renderer is responsible for:
 
 1. Loading the `ui_pages` record for the current route.
-2. Loading related sections, components, widgets, views, filters, and fields.
-3. Loading Directus schema metadata for the active collection when needed.
-4. Normalizing config into typed frontend props.
-5. Rendering UI through a component registry.
+2. Choosing the page renderer from `page_type`, `component_key`, and `collection_key`.
+3. Loading related sections, components, widgets, views, filters, and fields when that renderer needs them.
+4. Loading Directus schema metadata for the active collection when needed.
+5. Normalizing config into typed frontend props.
+6. Rendering UI through a component registry.
 
 ### State Management
 
@@ -105,7 +107,14 @@ Persistent UI preferences should be saved to Directus through `ui_views` or `ui_
 
 ## Sidebar and Page Model
 
-`ui_pages` supports both sidebar groups, top-level sidebar items, and nested sub items. This mirrors the current frontend contract:
+The frontend separates page definition from navigation definition:
+
+- `ui_pages` defines whether a route exists and how the route should render.
+- `ui_sidebar_items` defines what appears in the sidebar, how items nest, and which sidebar item links to which page.
+
+This separation keeps page routing stable even when the sidebar is reorganized. A page can exist without being visible in the sidebar, and a sidebar group can exist without linking to a page.
+
+The current frontend sidebar contract is:
 
 ```ts
 type SidebarProps = {
@@ -134,64 +143,66 @@ type SidebarProps = {
 
 In this model:
 
-- One `ui_pages` record maps to one `GroupMenu` item.
-- `ui_pages.parent_id` maps child records into `GroupMenu.subGroups`.
-- `ui_pages.sidebar_group_key` groups top-level records into separate `SidebarMenu` blocks.
-- `ui_pages.sidebar_group_label` becomes `SidebarMenu.groupName` as an i18n key.
-- `ui_pages.sidebar_group_translations` can become `SidebarMenu.groupName` with `groupNameNoTranslate = true`.
-- `ui_pages.title` / `translations` become `GroupMenu.label`.
-- `ui_pages.key` becomes `GroupMenu.groupId`.
-- `ui_pages.route` becomes `GroupMenu.href`.
-- `ui_pages.icon` becomes `GroupMenu.icon` for top-level records.
+- `ui_sidebar_items.type = "group"` maps to one `SidebarMenu` block and becomes `SidebarMenu.groupName`.
+- `ui_sidebar_items.type = "collapse"` maps to a sidebar row that can contain `subGroups`.
+- `ui_sidebar_items.type = "item"` maps to a clickable leaf item.
+- `ui_sidebar_items.parent_id` builds the nested sidebar tree.
+- `ui_sidebar_items.page_id` links a sidebar item to a real `ui_pages` record.
+- `ui_sidebar_items.page_id.route` becomes `GroupMenu.href`.
+- `ui_sidebar_items.title` / `translations` become labels.
+- `ui_sidebar_items.icon` resolves to a Lucide icon key.
+- `ui_sidebar_items.sort_order` sorts siblings under the same parent.
+- `ui_sidebar_items.is_enabled` and `is_visible` control whether the item should be shown.
 
-Top-level sidebar items are pages:
+`ui_pages` remains responsible for route behavior:
 
-- Dashboard
-- Workspace
-- Campaigns
-- Analytics
-- Automation
-- Settings
-- Collections
+- `route` is the frontend URL matched by `PageResolver`.
+- `page_type` selects the renderer, currently `collection` or `custom`.
+- `component_key` selects a custom React component from the frontend registry.
+- `collection_key` selects the Directus collection for collection pages.
+- `layout`, `props`, `permissions`, `is_enabled`, and `is_system` describe page-level behavior and governance.
 
-Use `ui_pages` for these sidebar routes. A page can be fully custom, dashboard-like, or a shell that hosts a reusable experience.
+Recommended sidebar item types:
 
-Use `ui_pages.parent_id` as a self foreign key when a page should be displayed as a sub item under another page, for example collection shortcuts under `Collections` or settings sub pages under `Settings`. Top-level items should keep `parent_id` empty.
+| Type       | Meaning                                                                        | Usually has `page_id` |
+| ---------- | ------------------------------------------------------------------------------ | --------------------- |
+| `group`    | Visual menu block header. Children become one `SidebarMenu` group.             | no                    |
+| `collapse` | Expandable menu row. Children become nested sub items.                         | optional              |
+| `item`     | Clickable navigation item. Links to `page_id.route` when connected to a page.  | yes                   |
 
-Use `sidebar_group_key`, `sidebar_group_label`, and `sidebar_group_order` when the sidebar needs multiple visual menu blocks, for example:
+Example sidebar tree:
 
-- `main`: Dashboard, Workspace, Campaigns, Analytics.
-- `data`: Collections and collection shortcuts.
-- `admin`: Automation, Settings.
-
-If the sidebar should render as one block, keep `sidebar_group_key = main` and `sidebar_group_label` empty for all top-level records.
+| Sidebar item key       | type       | parent key        | page key        | Rendered as                         |
+| ---------------------- | ---------- | ----------------- | --------------- | ----------------------------------- |
+| `main_group`           | `group`    | empty             | empty           | Sidebar group header                |
+| `dashboard_item`       | `item`     | `main_group`      | `dashboard`     | Link to `/dashboard`                |
+| `data_group`           | `group`    | empty             | empty           | Sidebar group header                |
+| `collections_collapse` | `collapse` | `data_group`      | empty           | Expandable "Collections" row        |
+| `customers_item`       | `item`     | `collections_collapse` | `customers_page` | Link to `/data-models/customers` |
+| `settings_group`       | `group`    | empty             | empty           | Sidebar group header                |
+| `settings_item`        | `item`     | `settings_group`  | `settings`      | Link to `/settings`                 |
 
 ```mermaid
 flowchart TD
     Sidebar[Sidebar Navigation]
 
-    Sidebar --> Dashboard[Dashboard]
-    Sidebar --> Workspace[Workspace]
-    Sidebar --> Campaigns[Campaigns]
-    Sidebar --> Analytics[Analytics]
-    Sidebar --> Automation[Automation]
-    Sidebar --> Settings[Settings]
-    Sidebar --> Collections[Collections]
+    Sidebar --> SidebarItems[ui_sidebar_items]
+    SidebarItems --> Group[group]
+    Group --> Item[item]
+    Group --> Collapse[collapse]
+    Collapse --> SubItem[sub item]
 
-    Dashboard --> Pages[ui_pages]
-    Workspace --> Pages
-    Campaigns --> Pages
-    Analytics --> Pages
-    Automation --> Pages
-    Settings --> Pages
-    Collections --> CollectionsPage[ui_pages: collections]
+    Item --> Page[ui_pages]
+    SubItem --> Page
+    Page --> Resolver[PageResolver]
+    Resolver --> Custom[Custom page registry]
+    Resolver --> CollectionShell[CollectionPage shell]
 
-    Pages --> Sections[ui_sections]
+    Page --> Sections[ui_sections]
     Sections --> Components[ui_components]
     Components --> Widgets[ui_widgets]
     Components --> FieldConfig[ui_fields]
 
-    CollectionsPage --> CollectionShell[Collection Page Shell]
     CollectionShell --> CollectionViews[ui_views]
     CollectionShell --> CollectionFilters[ui_filters]
     CollectionShell --> CollectionFields[ui_fields]
@@ -200,7 +211,9 @@ flowchart TD
 
 ## Collection Page Model
 
-`Collections` is a `ui_pages` entry. Each child collection page uses the same collection page shell, but loads different Directus collection metadata and saved view configuration.
+A collection screen is a `ui_pages` entry with `page_type = collection` and a valid `collection_key`. Multiple collection routes can reuse the same `CollectionPage` shell while loading different Directus collection metadata and saved view configuration.
+
+Sidebar links for these pages are optional `ui_sidebar_items` records that point to the collection page through `page_id`.
 
 Use `ui_views` for saved layouts:
 
@@ -233,8 +246,8 @@ sequenceDiagram
     participant Config as UI Config API
     participant Directus
 
-    User->>UI: Open /collections/:collection
-    UI->>Config: Load ui_pages entry for Collections
+    User->>UI: Open a configured collection route
+    UI->>Config: Load matching ui_pages entry
     UI->>Config: Load ui_views for collection
     UI->>Config: Load ui_fields and optional ui_filters
     UI->>Directus: Load Directus field schema
@@ -254,7 +267,9 @@ sequenceDiagram
 
 | Concern                          | Recommended model                            | Example                                      |
 | -------------------------------- | -------------------------------------------- | -------------------------------------------- |
-| Sidebar route                    | `ui_pages`                                   | `/dashboard`, `/analytics`, `/collections`   |
+| Frontend route and renderer      | `ui_pages`                                   | `/dashboard`, `/analytics`, `/data-models`   |
+| Sidebar navigation tree          | `ui_sidebar_items`                           | Main group, Settings collapse, Dashboard item |
+| Sidebar item linked to a route   | `ui_sidebar_items.page_id -> ui_pages.id`    | Dashboard item links to `/dashboard`          |
 | Unique page layout               | `ui_pages` + `ui_sections` + `ui_components` | Analytics dashboard with charts              |
 | Dashboard widget                 | `ui_widgets`                                 | KPI card, chart, recent activity             |
 | Collection page shell            | Code component + `ui_pages`                  | Generic `CollectionPage` route               |
@@ -298,29 +313,34 @@ erDiagram
 
     ui_pages {
         uuid id PK
-        uuid parent_id FK
         string key UK
-        string route UK
         string title
         json translations
-        string description
-        string icon
+        string route UK
         string page_type
+        string component_key
+        string collection_key
         string layout
-        string collection
-        string default_view_key
-        string sidebar_group_key
-        string sidebar_group_label
-        json sidebar_group_translations
-        integer sidebar_group_order
-        integer sidebar_order
         json props
-        json visibility
-        boolean is_system
-        boolean is_enabled
-        boolean show_in_sidebar
-        integer order
         json permissions
+        boolean is_enabled
+        boolean is_system
+    }
+
+    ui_sidebar_items {
+        uuid id PK
+        string key UK
+        string title
+        json translations
+        string icon
+        string type
+        uuid page_id FK
+        uuid parent_id FK
+        integer sort_order
+        boolean is_enabled
+        boolean is_visible
+        json permissions
+        json props
     }
 
     ui_sections {
@@ -411,7 +431,8 @@ erDiagram
     directus_roles ||--o{ directus_users : has
     directus_collections ||--o{ directus_fields : defines
 
-    ui_pages ||--o{ ui_pages : has_sub_items
+    ui_pages ||--o{ ui_sidebar_items : linked_from
+    ui_sidebar_items ||--o{ ui_sidebar_items : has_children
     ui_pages ||--o{ ui_sections : contains
     ui_sections ||--o{ ui_sections : nests
     ui_pages ||--o{ ui_components : contains
@@ -436,17 +457,16 @@ erDiagram
 
 ### ui_pages
 
-Purpose: define screens, routes, sidebar entries, nested sub items, and top-level layout containers.
+Purpose: define screens, frontend routes, renderer behavior, layout shell, page props, and page-level governance.
 
 `ui_pages` should answer these questions:
 
-- Does this page exist?
-- Is it a top-level page or a sub item under another page?
-- What route opens it?
-- Should it appear in the sidebar?
+- Does this frontend route exist?
+- Which renderer should handle the page?
+- Is this a generic collection page or a custom frontend component?
 - Which layout shell should render it?
-- Which roles/users can access it?
-- Is this a system page that normal users cannot delete?
+- Which roles/users/features can access it?
+- Is this a system page that normal users should not delete or rename?
 
 Recommended Directus collection name: `ui_pages`.
 
@@ -454,100 +474,77 @@ Recommended permissions:
 
 - Admin/tech lead can create, update, and delete non-system pages.
 - Normal users can read only enabled pages they have permission to access.
-- System pages should be protected from delete and key/route changes.
+- System pages should be protected from delete and unsafe key/route changes.
 
-Recommended fields:
+Recommended fields, based on `docs/ui_pages.md`:
 
-| Field              | Type                    | Required | Notes                                                                                                                            |
-| ------------------ | ----------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `id`               | uuid                    | yes      | Primary key.                                                                                                                     |
-| `parent_id`        | m2o -> `ui_pages`       | no       | Optional self foreign key used to create nested page sub items. Empty means this page is a top-level item.                       |
-| `key`              | string                  | yes      | Unique stable identifier. Use code-friendly values such as `dashboard`, `collections`, `settings`. Do not change after creation. |
-| `route`            | string                  | yes      | Unique frontend route, for example `/dashboard` or `/collections`.                                                               |
-| `title`            | string                  | yes      | Page title used in headers and browser metadata.                                                                                 |
-| `translations`     | json                    | no       | Optional localized labels by locale key.                                                                                         |
-| `description`      | text                    | no       | Internal explanation for admins/config editors.                                                                                  |
-| `icon`             | string                  | no       | Icon key from the frontend icon registry, for example `layout-dashboard`, `folder`, `settings`.                                  |
-| `page_type`        | string                  | yes      | Page behavior: `dashboard`, `workspace`, `collection_shell`, `settings`, `custom`.                                               |
-| `layout`           | string                  | yes      | Layout renderer: `dashboard`, `default`, `list`, `settings`, `blank`.                                                            |
-| `collection`       | string                  | no       | Optional Directus collection name if this page is bound to one collection. Usually empty for top-level sidebar pages.            |
-| `default_view_key` | string                  | no       | Optional default `ui_views.key` for collection-like pages.                                                                       |
-| `sidebar_group_key` | string                 | yes      | Sidebar block identifier. Maps to one `SidebarMenu` item in `SidebarProps.menu`. Default `main`.                                |
-| `sidebar_group_label` | string              | no       | Optional translation key or display label for the sidebar block header. Empty renders no group header.                           |
-| `sidebar_group_translations` | json         | no       | Optional localized sidebar group label by locale key.                                                                            |
-| `sidebar_group_order` | integer              | yes      | Sort order for sidebar blocks. Default `100`.                                                                                    |
-| `sidebar_order`    | integer                 | yes      | Sort order inside the sidebar block or inside a parent submenu. Default copies `order`.                                          |
-| `props`            | json                    | no       | Page-level render options, feature flags, or layout options.                                                                     |
-| `visibility`       | json                    | no       | Conditional display rules, for example feature flags or workspace rules.                                                         |
-| `permissions`      | json                    | no       | Access policy. Start as JSON; normalize later if needed.                                                                         |
-| `show_in_sidebar`  | boolean                 | yes      | Whether this page appears in the main sidebar.                                                                                   |
-| `is_enabled`       | boolean                 | yes      | Soft enable/disable flag. Disabled pages should not render.                                                                      |
-| `is_system`        | boolean                 | yes      | Locks core pages from deletion or unsafe edits.                                                                                  |
-| `order`            | integer                 | yes      | Sidebar/order sorting.                                                                                                           |
-| `user_created`     | m2o -> `directus_users` | auto     | Directus accountability field.                                                                                                   |
-| `date_created`     | datetime                | auto     | Directus accountability field.                                                                                                   |
-| `user_updated`     | m2o -> `directus_users` | auto     | Directus accountability field.                                                                                                   |
-| `date_updated`     | datetime                | auto     | Directus accountability field.                                                                                                   |
+| Field            | Type        | Required | Notes                                                                                                                            |
+| ---------------- | ----------- | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | uuid / ulid | yes      | Primary key.                                                                                                                     |
+| `key`            | string      | yes      | Unique stable identifier. Use code-friendly values such as `dashboard`, `customers_page`, `settings`. Do not change casually.    |
+| `title`          | string      | yes      | Default page name. Used by page headers, breadcrumbs, metadata, and as fallback display text.                                    |
+| `translations`   | json        | no       | Localized data for `title`, `description`, and breadcrumbs.                                                                       |
+| `route`          | string      | yes      | Unique frontend route, for example `/dashboard` or `/data-models/customers`. Must start with `/`.                               |
+| `page_type`      | enum        | yes      | Page renderer type. Current implementation supports `collection` and `custom`.                                                   |
+| `component_key`  | string      | no       | Frontend registry key used when `page_type = custom`.                                                                            |
+| `collection_key` | string      | no       | Directus collection managed by the page. Required when `page_type = collection`.                                                 |
+| `layout`         | string      | no       | Layout shell key, for example `default`, `blank`, or `settings`.                                                                 |
+| `props`          | json        | no       | Page/component config passed to the renderer.                                                                                    |
+| `permissions`    | json        | no       | Access policy. Start as JSON; normalize later if needed.                                                                         |
+| `is_enabled`     | boolean     | yes      | Soft enable/disable flag. Disabled pages should not render.                                                                      |
+| `is_system`      | boolean     | yes      | Locks core pages from deletion or unsafe edits.                                                                                  |
+| `user_created`   | m2o -> `directus_users` | auto | Directus accountability field.                                                                                       |
+| `date_created`   | datetime    | auto     | Directus accountability field.                                                                                                   |
+| `user_updated`   | m2o -> `directus_users` | auto | Directus accountability field.                                                                                       |
+| `date_updated`   | datetime    | auto     | Directus accountability field.                                                                                                   |
 
 Recommended field constraints:
 
 - `key` unique.
 - `route` unique.
-- `parent_id` should reference `ui_pages.id`.
-- `parent_id` must be empty for top-level sidebar items.
-- A page must not use itself as `parent_id`; circular parent chains must be blocked in application validation.
 - `key` should match `^[a-z][a-z0-9_]*$`.
 - `route` should start with `/`.
 - `page_type` should use a fixed dropdown.
-- `layout` should use a fixed dropdown.
-- `sidebar_group_key` should default to `main`.
-- `sidebar_group_order` should default to `100`.
-- `sidebar_order` should default to `order`.
-- `order` should default to `100`.
-- `show_in_sidebar` should default to `true`.
+- `page_type = collection` requires `collection_key`.
+- `page_type = custom` requires either `component_key` or a `key` that exists in the frontend `customPageRegistry`.
 - `is_enabled` should default to `true`.
 - `is_system` should default to `false`.
 
 Recommended `page_type` values:
 
-| Value              | Meaning                                         |
-| ------------------ | ----------------------------------------------- |
-| `dashboard`        | Dashboard or analytics-style page with widgets. |
-| `workspace`        | Work area page with mixed sections/components.  |
-| `collection_shell` | Generic shell for Directus collection browsing. |
-| `settings`         | Admin/settings page.                            |
-| `custom`           | Page rendered by a custom frontend component.   |
+| Value        | Meaning                                                                 |
+| ------------ | ----------------------------------------------------------------------- |
+| `collection` | Generic shell for Directus collection browsing and CRUD.                |
+| `custom`     | Page rendered by a custom frontend component from `customPageRegistry`. |
 
 Recommended `layout` values:
 
-| Value       | Meaning                                               |
-| ----------- | ----------------------------------------------------- |
-| `default`   | Standard page layout with breadcrumbs/header/content. |
-| `dashboard` | Grid layout optimized for widgets.                    |
-| `list`      | List-first layout.                                    |
-| `settings`  | Settings layout with secondary navigation.            |
-| `blank`     | Minimal shell for special pages.                      |
+| Value      | Meaning                                               |
+| ---------- | ----------------------------------------------------- |
+| `default`  | Standard page layout with breadcrumbs/header/content. |
+| `settings` | Settings layout with secondary navigation.            |
+| `blank`    | Minimal shell for special pages.                      |
 
 Example records:
 
-| key           | parent_key    | route                   | title       | sidebar_group_key | sidebar_group_label | sidebar_group_order | sidebar_order | icon            |
-| ------------- | ------------- | ----------------------- | ----------- | ----------------- | ------------------- | ------------------- | ------------- | --------------- |
-| `dashboard`   | empty         | `/dashboard`            | Dashboard   | `main`            | empty               | 10                  | 10            | `LayoutDashboard` |
-| `workspace`   | empty         | `/workspace`            | Workspace   | `main`            | empty               | 10                  | 20            | `BriefcaseBusiness` |
-| `campaigns`   | empty         | `/campaigns`            | Campaigns   | `main`            | empty               | 10                  | 30            | `Megaphone`     |
-| `analytics`   | empty         | `/analytics`            | Analytics   | `main`            | empty               | 10                  | 40            | `ChartNoAxesCombined` |
-| `collections` | empty         | `/collections`          | Collections | `data`            | `sidebar.data`      | 20                  | 10            | `Database`      |
-| `contacts`    | `collections` | `/collections/contacts` | Contacts    | `data`            | `sidebar.data`      | 20                  | 10            | empty           |
-| `deals`       | `collections` | `/collections/deals`    | Deals       | `data`            | `sidebar.data`      | 20                  | 20            | empty           |
-| `automation`  | empty         | `/automation`           | Automation  | `admin`           | `sidebar.admin`     | 30                  | 10            | `Workflow`      |
-| `settings`    | empty         | `/settings`             | Settings    | `admin`           | `sidebar.admin`     | 30                  | 20            | `Settings`      |
+| key              | route                    | title      | page_type    | component_key | collection_key |
+| ---------------- | ------------------------ | ---------- | ------------ | ------------- | -------------- |
+| `dashboard`      | `/dashboard`             | Dashboard  | `custom`     | `dashboard`   | empty          |
+| `customers_page` | `/data-models/customers` | Customers  | `collection` | empty         | `customers`    |
+| `settings`       | `/settings`              | Settings   | `custom`     | `settings`    | empty          |
 
 Example `translations` JSON:
 
 ```json
 {
-  "vi": "Khach Hang",
-  "en": "Customers"
+  "vi": {
+    "title": "Khach hang",
+    "description": "Quan ly danh sach khach hang"
+  },
+  "en": {
+    "title": "Customers",
+    "description": "Manage customer records"
+  }
 }
 ```
 
@@ -561,40 +558,79 @@ Example `permissions` JSON:
 }
 ```
 
-Example `visibility` JSON:
-
-```json
-{
-  "feature_flags": ["collections_enabled"],
-  "workspace_required": false
-}
-```
-
 Implementation notes:
 
-- `ui_pages` defines the page shell, not every widget or field inside the page.
-- Sidebar rendering should query enabled pages where `show_in_sidebar = true`, filter by `permissions`, group top-level pages by `sidebar_group_key`, sort sidebar groups by `sidebar_group_order`, sort siblings by `sidebar_order`, and map children through `parent_id`.
-- The `Collections` sidebar item should be one top-level `ui_pages` record. Directus collection shortcuts may be represented as child `ui_pages` records using `parent_id = collections.id` when they need to appear as sidebar sub items.
-- Create a separate child `ui_pages` record for a collection only when it needs a visible sub item, a truly custom route, or custom page behavior.
+- `ui_pages` defines the page shell and route behavior, not sidebar placement.
+- Sidebar placement belongs to `ui_sidebar_items`.
+- `PageResolver` should query enabled pages by `route`, then render by `page_type`.
+- Custom pages must be registered in `customPageRegistry`.
+- Collection pages must have a valid `collection_key` that maps to a Directus collection.
+
+### ui_sidebar_items
+
+Purpose: define sidebar navigation items, labels, icons, nesting, order, visibility, and optional links to real pages.
+
+`ui_sidebar_items` should answer these questions:
+
+- Should this item appear in the sidebar?
+- Is it a group header, collapsible parent, or clickable item?
+- Which page does it link to, if any?
+- Where does it sit in the nested sidebar tree?
+- Which roles/users/features can see it?
+
+Recommended Directus collection name: `ui_sidebar_items`.
+
+Recommended fields, based on `docs/ui_sidebar_items.md`:
+
+| Field          | Type                              | Required | Notes                                                                 |
+| -------------- | --------------------------------- | -------- | --------------------------------------------------------------------- |
+| `id`           | uuid / ulid                       | yes      | Primary key.                                                          |
+| `key`          | string                            | yes      | Unique stable sidebar item key, for example `dashboard_item`.         |
+| `title`        | string                            | yes      | Default label.                                                        |
+| `translations` | json                              | no       | Localized label data.                                                 |
+| `icon`         | string                            | no       | Lucide icon key, for example `Settings`, `CircleGauge`, `Database`.   |
+| `type`         | enum                              | yes      | Sidebar item type: `group`, `collapse`, or `item`.                    |
+| `page_id`      | m2o -> `ui_pages.id`              | no       | Link to the real page. Used to resolve `href` from `page_id.route`.   |
+| `parent_id`    | m2o -> `ui_sidebar_items.id`      | no       | Self relation used to create nested menu structure.                   |
+| `sort_order`   | integer                           | yes      | Sort order within the same parent.                                    |
+| `is_enabled`   | boolean                           | yes      | Soft enable/disable flag. Disabled items should not render.           |
+| `is_visible`   | boolean                           | yes      | Controls sidebar visibility without deleting the item.                |
+| `permissions`  | json                              | no       | Access policy for sidebar visibility.                                 |
+| `props`        | json                              | no       | Additional UI config for sidebar rendering.                           |
+| `user_created` | m2o -> `directus_users`           | auto     | Directus accountability field.                                        |
+| `date_created` | datetime                          | auto     | Directus accountability field.                                        |
+| `user_updated` | m2o -> `directus_users`           | auto     | Directus accountability field.                                        |
+| `date_updated` | datetime                          | auto     | Directus accountability field.                                        |
+
+Recommended field constraints:
+
+- `key` unique.
+- `key` should match `^[a-z][a-z0-9_]*$`.
+- `type` should use a fixed dropdown: `group`, `collapse`, `item`.
+- `parent_id` should reference `ui_sidebar_items.id`.
+- An item must not use itself as `parent_id`; circular parent chains must be blocked in application validation.
+- `sort_order` should default to `100`.
+- `is_enabled` should default to `true`.
+- `is_visible` should default to `true`.
 
 Recommended frontend mapping:
 
 ```ts
-const sidebarMenu = sidebarGroups.map((group) => ({
-  groupName: group.label,
-  groupNameNoTranslate: group.hasDirectusTranslation,
-  groups: group.pages.map((page) => ({
-    id: page.id,
-    label: resolveLabel(page),
-    groupId: page.key,
-    icon: resolveIcon(page.icon),
-    href: page.route,
+const sidebarMenu = rootGroups.map((group) => ({
+  groupName: resolveLabel(group),
+  groupNameNoTranslate: true,
+  groups: childrenByParentId[group.id].map((item) => ({
+    id: item.id,
+    label: resolveLabel(item),
+    groupId: group.id,
+    icon: resolveIcon(item.icon),
+    href: item.page_id?.route,
     noTranslate: true,
-    subGroups: childrenByParentId[page.id]?.map((child) => ({
-      id: child.id,
-      label: resolveLabel(child),
-      groupId: child.key,
-      href: child.route,
+    subGroups: childrenByParentId[item.id]?.map((subItem) => ({
+      id: subItem.id,
+      label: resolveLabel(subItem),
+      groupId: item.id,
+      href: subItem.page_id?.route,
       noTranslate: true,
     })),
   })),
@@ -795,7 +831,7 @@ Before choosing GraphQL, ask:
 
 ### Standard Collection List
 
-1. User opens `/collections/:collection`.
+1. User opens a route whose `ui_pages.page_type = collection`.
 2. UI loads collection metadata from Zustand or Directus.
 3. UI loads Directus fields for the collection.
 4. UI loads `ui_fields` overrides.
@@ -834,6 +870,14 @@ Before choosing GraphQL, ask:
 
 ## Current Implementation Status
 
+Current sidebar and page resolution already:
+
+- Reads sidebar navigation from `ui_sidebar_items`.
+- Maps `group`, `collapse`, and `item` records into the frontend `SidebarMenu` shape.
+- Uses `page_id.route` as the sidebar link target.
+- Resolves dynamic routes by querying `ui_pages.route`.
+- Supports `page_type = collection` and `page_type = custom`.
+
 Current `CollectionPage` already:
 
 - Uses one reusable collection page shell.
@@ -853,7 +897,7 @@ To implement saved views, add API support for reading/writing `ui_views` and upd
 
 ## Implementation Roadmap
 
-1. Define Directus collections for `ui_pages`, `ui_sections`, `ui_components`, `ui_widgets`, `ui_views`, `ui_filters`, `ui_view_filters`, and `ui_fields`, including `ui_pages.parent_id` as a self foreign key.
+1. Define Directus collections for `ui_pages`, `ui_sidebar_items`, `ui_sections`, `ui_components`, `ui_widgets`, `ui_views`, `ui_filters`, `ui_view_filters`, and `ui_fields`, including `ui_sidebar_items.parent_id` as a self foreign key.
 2. Add TypeScript types and runtime validation for UI config records.
 3. Add REST wrappers for UI config and Directus metadata.
 4. Update `CollectionPage` to load `ui_views`, `ui_filters`, and `ui_fields`.
