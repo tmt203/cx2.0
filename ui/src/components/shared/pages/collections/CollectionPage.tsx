@@ -2,8 +2,6 @@
 
 import { useAppStore } from "@/src/lib/store/appStore";
 import { apiDeleteItem, apiGetItems } from "@api/rest/directus/items.api";
-import AddRecordModal from "@components/non-shared/collection/AddRecordModal";
-import { InputSearch, Skeleton } from "@components/shared/atoms";
 import { Button, ConfirmModal, Pagination } from "@components/shared/molecules";
 import { FilterItemConfig } from "@components/shared/molecules/FilterItem";
 import { DataTable, Filter } from "@components/shared/organisms";
@@ -13,12 +11,12 @@ import { ColumnType, TableColumn } from "@type/component/table.type";
 import { debounce } from "@utils/debounce";
 import { PencilLine, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 
 export interface CollectionPageProps {
 	collection: string;
-	recordId?: string;
 }
 
 /**
@@ -26,14 +24,14 @@ export interface CollectionPageProps {
  * @param collection string
  * @param recordId string | undefined
  */
-const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
-	const appStore = useAppStore();
-	const fields = appStore.fields.filter((field) => field.collection === collection);
-	const currentCollection = appStore.collections.find((col) => col.collection === collection);
-
+const CollectionPage = ({ collection }: CollectionPageProps) => {
 	// Hooks
 	const locale = useLocale();
 	const t = useTranslations();
+	const router = useRouter();
+	const pathname = usePathname();
+	const fields = useAppStore((state) => state.fields);
+	const collections = useAppStore((state) => state.collections);
 
 	// States
 	const [page, setPage] = useState<number>(1);
@@ -45,12 +43,17 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 	const [param, setParam] = useState<Record<string, any>>({});
 	const [deleteModal, setDeleteModal] = useState<boolean>(false);
 	const [hiddenColumnKeys, setHiddenColumnKeys] = useState<string[]>([]);
-	const [addRecordModalOpen, setAddRecordModalOpen] = useState<boolean>(false);
 	const [selectedRecord, setSelectedRecord] = useState<Record<string, unknown>>();
-	const [recordModalMode, setRecordModalMode] = useState<"create" | "edit">("create");
-	const [editingRecordId, setEditingRecordId] = useState<string | number | undefined>(undefined);
 	const [filters, setFilters] = useState<Record<string, FilterItemConfig>>({});
 
+	const collectionFields = useMemo(
+		() => fields.filter((field) => field.collection === collection),
+		[collection, fields]
+	);
+	const currentCollection = useMemo(
+		() => collections.find((col) => col.collection === collection),
+		[collection, collections]
+	);
 	const collectionLabel = useMemo(() => {
 		const normalizedLocale = locale.toLowerCase();
 		const translations = currentCollection?.meta?.translations;
@@ -92,7 +95,7 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 			}
 		};
 
-		return [...fields]
+		return [...collectionFields]
 			.sort((a, b) => Number(a.meta?.order) - Number(b.meta?.order))
 			.map((item) => {
 				const translation =
@@ -108,26 +111,25 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 					noTranslation: true,
 				};
 			});
-	}, [fields, hiddenColumnKeys, locale]);
+	}, [collectionFields, hiddenColumnKeys, locale]);
 
 	/**
 	 * Handle add record
 	 */
-	const handleAddRecordModalOpen = useCallback(() => {
-		setRecordModalMode("create");
-		setEditingRecordId(undefined);
-		setAddRecordModalOpen(true);
-	}, []);
+	const handleAddRecord = useCallback(() => {
+		router.push(`${pathname}/new`);
+	}, [pathname, router]);
 
 	/**
 	 * Handle edit record modal open
 	 * @param row TableRow
 	 */
-	const handleEditRecordModalOpen = useCallback((row: TableRow) => {
-		setRecordModalMode("edit");
-		setEditingRecordId(row.id as string | number);
-		setAddRecordModalOpen(true);
-	}, []);
+	const handleEditRecordModalOpen = useCallback(
+		(row: TableRow) => {
+			router.push(`${pathname}/${row.id as string | number}`);
+		},
+		[pathname, router]
+	);
 
 	/**
 	 * Handle open delete modal
@@ -279,7 +281,7 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 					{/* Area: Right Action */}
 					<div className="flex gap-2">
 						{/* Area: Add List */}
-						<Button size="sm" onClick={handleAddRecordModalOpen}>
+						<Button size="sm" onClick={handleAddRecord}>
 							{t("action.add_record")}
 						</Button>
 					</div>
@@ -326,32 +328,6 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 					/>
 				)}
 			</div>
-
-			{addRecordModalOpen && (
-				<AddRecordModal
-					key="add-record-modal"
-					collection={collection}
-					fields={fields}
-					mode={recordModalMode}
-					recordId={editingRecordId}
-					isOpen={addRecordModalOpen}
-					setIsOpen={(open) => {
-						setAddRecordModalOpen(open);
-						if (!open) {
-							setRecordModalMode("create");
-							setEditingRecordId(undefined);
-						}
-					}}
-					onCreated={async () => {
-						await handleGetTotalRecords();
-						await handleGetDataTable();
-					}}
-					onUpdated={async () => {
-						await handleGetTotalRecords();
-						await handleGetDataTable();
-					}}
-				/>
-			)}
 
 			{deleteModal && (
 				<ConfirmModal

@@ -1,5 +1,6 @@
 import { apiGetUIPages } from "@api/rest/directus/ui_pages.api";
 import CollectionPage from "@components/shared/pages/collections/CollectionPage";
+import CollectionRecordPage from "@components/shared/pages/collections/CollectionRecordPage";
 import { customPageRegistry } from "@components/shared/pages/customPageRegistry";
 import { notFound } from "next/navigation";
 
@@ -83,15 +84,31 @@ const PageResolver = async ({ slug }: PageResolverProps) => {
 	const trailingSegments = getTrailingSegments(route, matchedRoute);
 
 	if (page.page_type === "collection") {
-		const collection = page.collection_key ?? "";
-		const recordId = collection ? trailingSegments[0] : "";
+		const collectionFromPage = page.collection_key ?? "";
+		const collection = collectionFromPage || trailingSegments[0] || "";
+		const recordId = collectionFromPage ? trailingSegments[0] : trailingSegments[1];
+		const isCreate = recordId === "new";
+		const baseRoute = collectionFromPage ? matchedRoute : `${matchedRoute}/${collection}`;
 
 		console.log("collection:", collection);
 		console.log("recordId:", recordId);
 
 		if (!collection) notFound();
+		if (isCreate) {
+			return <CollectionRecordPage collection={collection} mode="create" baseRoute={baseRoute} />;
+		}
+		if (recordId) {
+			return (
+				<CollectionRecordPage
+					collection={collection}
+					mode="edit"
+					recordId={recordId}
+					baseRoute={baseRoute}
+				/>
+			);
+		}
 
-		return <CollectionPage collection={collection} recordId={recordId} />;
+		return <CollectionPage collection={collection} />;
 	}
 
 	if (page.page_type === "custom") {
