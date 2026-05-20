@@ -21,6 +21,8 @@ export interface SelectFormProps extends Omit<
 	state?: "default" | "error" | "success" | "warning";
 	placement?: Display;
 	errorMessage?: string;
+	errorMessageValues?: Record<string, string | number>;
+	noTranslateErrorMessage?: boolean;
 	placeholder?: string;
 	noTranslateLabel?: boolean;
 	icon?: keyof typeof LucideIcons;
@@ -65,12 +67,20 @@ const SelectForm = ({
 	state = "default",
 	placement = "col",
 	errorMessage = "",
+	errorMessageValues,
+	noTranslateErrorMessage = false,
 	noTranslateLabel = false,
 	iconDirection = "start",
 	...props
 }: SelectFormProps) => {
 	// Hooks
 	const t = useTranslations();
+
+	const resolvedErrorMessage = errorMessage
+		? noTranslateErrorMessage
+			? errorMessage
+			: t(errorMessage, errorMessageValues)
+		: "";
 
 	const LucideIcon = useMemo(() => {
 		if (!icon) return null;
@@ -264,7 +274,9 @@ const SelectForm = ({
 					</div>
 				</div>
 			</div>
-			{errorMessage ? <p className="pl-4 text-sm italic text-danger-500">{errorMessage}</p> : null}
+			{resolvedErrorMessage ? (
+				<p className="pl-4 text-sm italic text-danger-500">{resolvedErrorMessage}</p>
+			) : null}
 		</div>
 	);
 };

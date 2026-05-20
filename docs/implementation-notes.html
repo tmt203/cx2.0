@@ -1,974 +1,1121 @@
 <!doctype html>
 <html lang="vi">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>CX2.0 UI - System Implementation Notes</title>
-		<style>
-			:root {
-				color-scheme: light;
-				--ink: #172033;
-				--muted: #647083;
-				--soft: #f3f6fb;
-				--line: #d8e0ec;
-				--panel: #ffffff;
-				--brand: #1769e0;
-				--brand-soft: #eaf2ff;
-				--teal: #0f8f8c;
-				--green: #25845a;
-				--amber: #a45f00;
-				--red: #c2414b;
-				--violet: #6d5bd0;
-				--shadow: 0 14px 36px rgba(23, 32, 51, 0.1);
-			}
-
-			* {
-				box-sizing: border-box;
-			}
-
-			body {
-				margin: 0;
-				font-family:
-					Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-					sans-serif;
-				background: #f7f9fc;
-				color: var(--ink);
-				line-height: 1.55;
-			}
-
-			a {
-				color: var(--brand);
-				text-decoration: none;
-			}
-
-			code {
-				border: 1px solid var(--line);
-				border-radius: 6px;
-				background: #f8fafc;
-				padding: 0.12rem 0.34rem;
-				font-size: 0.9em;
-			}
-
-			.shell {
-				display: grid;
-				grid-template-columns: 280px minmax(0, 1fr);
-				min-height: 100vh;
-			}
-
-			.sidebar {
-				position: sticky;
-				top: 0;
-				height: 100vh;
-				border-right: 1px solid var(--line);
-				background: #fff;
-				padding: 28px 22px;
-				overflow: auto;
-			}
-
-			.logo {
-				display: flex;
-				align-items: center;
-				gap: 12px;
-				margin-bottom: 28px;
-			}
-
-			.logo-mark {
-				display: grid;
-				place-items: center;
-				width: 40px;
-				height: 40px;
-				border-radius: 10px;
-				background: var(--brand);
-				color: #fff;
-				font-weight: 800;
-			}
-
-			.logo strong {
-				display: block;
-				font-size: 0.98rem;
-			}
-
-			.logo span,
-			.nav-label,
-			.small {
-				color: var(--muted);
-				font-size: 0.84rem;
-			}
-
-			.nav-label {
-				margin: 24px 0 8px;
-				text-transform: uppercase;
-				letter-spacing: 0.08em;
-				font-weight: 700;
-			}
-
-			.nav a {
-				display: block;
-				border-radius: 8px;
-				padding: 8px 10px;
-				color: var(--ink);
-				font-size: 0.92rem;
-			}
-
-			.nav a:hover {
-				background: var(--brand-soft);
-				color: var(--brand);
-			}
-
-			main {
-				min-width: 0;
-			}
-
-			.hero {
-				background: #0d1b32;
-				color: #fff;
-				padding: 54px clamp(24px, 5vw, 72px) 46px;
-			}
-
-			.hero h1 {
-				max-width: 980px;
-				margin: 0 0 16px;
-				font-size: clamp(2rem, 4vw, 4rem);
-				line-height: 1.05;
-				letter-spacing: 0;
-			}
-
-			.hero p {
-				max-width: 860px;
-				margin: 0;
-				color: #cbd7e8;
-				font-size: 1.08rem;
-			}
-
-			.hero-meta {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 10px;
-				margin-top: 26px;
-			}
-
-			.pill {
-				display: inline-flex;
-				align-items: center;
-				gap: 8px;
-				border: 1px solid rgba(255, 255, 255, 0.2);
-				border-radius: 999px;
-				background: rgba(255, 255, 255, 0.08);
-				padding: 7px 12px;
-				color: #eaf2ff;
-				font-size: 0.9rem;
-			}
-
-			.content {
-				padding: 32px clamp(18px, 4vw, 56px) 64px;
-			}
-
-			.section {
-				margin-bottom: 28px;
-			}
-
-			.section h2 {
-				margin: 0 0 14px;
-				font-size: 1.55rem;
-			}
-
-			.grid {
-				display: grid;
-				grid-template-columns: repeat(12, 1fr);
-				gap: 16px;
-			}
-
-			.card {
-				border: 1px solid var(--line);
-				border-radius: 8px;
-				background: var(--panel);
-				box-shadow: 0 1px 2px rgba(23, 32, 51, 0.04);
-				padding: 18px;
-			}
-
-			.span-3 {
-				grid-column: span 3;
-			}
-
-			.span-4 {
-				grid-column: span 4;
-			}
-
-			.span-5 {
-				grid-column: span 5;
-			}
-
-			.span-6 {
-				grid-column: span 6;
-			}
-
-			.span-7 {
-				grid-column: span 7;
-			}
-
-			.span-8 {
-				grid-column: span 8;
-			}
-
-			.span-12 {
-				grid-column: span 12;
-			}
-
-			.kpi {
-				display: flex;
-				flex-direction: column;
-				gap: 8px;
-			}
-
-			.kpi strong {
-				font-size: 1.8rem;
-				line-height: 1;
-			}
-
-			.kpi span {
-				color: var(--muted);
-				font-size: 0.92rem;
-			}
-
-			.flow {
-				display: grid;
-				grid-template-columns: repeat(5, minmax(130px, 1fr));
-				align-items: stretch;
-				gap: 12px;
-			}
-
-			.node {
-				position: relative;
-				border: 1px solid var(--line);
-				border-radius: 8px;
-				background: #fff;
-				padding: 14px;
-				min-height: 116px;
-			}
-
-			.node:not(:last-child)::after {
-				content: "";
-				position: absolute;
-				top: 50%;
-				right: -12px;
-				width: 12px;
-				border-top: 2px solid var(--line);
-			}
-
-			.node b {
-				display: block;
-				margin-bottom: 6px;
-			}
-
-			.node p {
-				margin: 0;
-				color: var(--muted);
-				font-size: 0.9rem;
-			}
-
-			.tag {
-				display: inline-flex;
-				border-radius: 999px;
-				background: var(--soft);
-				padding: 3px 9px;
-				color: var(--muted);
-				font-size: 0.78rem;
-				font-weight: 700;
-			}
-
-			.stack {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 8px;
-			}
-
-			.stack .tag {
-				background: var(--brand-soft);
-				color: #155fc7;
-			}
-
-			.tree {
-				margin: 0;
-				padding: 0;
-				list-style: none;
-				font-family:
-					"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-				font-size: 0.9rem;
-			}
-
-			.tree li {
-				position: relative;
-				margin: 0;
-				padding: 3px 0 3px 20px;
-				color: #26354f;
-			}
-
-			.tree li::before {
-				content: "";
-				position: absolute;
-				left: 6px;
-				top: 0;
-				bottom: 0;
-				border-left: 1px solid #c9d4e5;
-			}
-
-			.tree li::after {
-				content: "";
-				position: absolute;
-				left: 6px;
-				top: 14px;
-				width: 10px;
-				border-top: 1px solid #c9d4e5;
-			}
-
-			table {
-				width: 100%;
-				border-collapse: collapse;
-				font-size: 0.92rem;
-			}
-
-			th,
-			td {
-				border-bottom: 1px solid var(--line);
-				padding: 10px 8px;
-				text-align: left;
-				vertical-align: top;
-			}
-
-			th {
-				color: #36445a;
-				background: #f8fafc;
-				font-size: 0.82rem;
-				text-transform: uppercase;
-				letter-spacing: 0.04em;
-			}
-
-			.timeline {
-				display: grid;
-				gap: 12px;
-			}
-
-			.step {
-				display: grid;
-				grid-template-columns: 34px minmax(0, 1fr);
-				gap: 12px;
-				align-items: start;
-			}
-
-			.step-index {
-				display: grid;
-				place-items: center;
-				width: 34px;
-				height: 34px;
-				border-radius: 999px;
-				background: var(--brand);
-				color: #fff;
-				font-weight: 800;
-				font-size: 0.88rem;
-			}
-
-			.step h3,
-			.card h3 {
-				margin: 0 0 6px;
-				font-size: 1rem;
-			}
-
-			.step p,
-			.card p,
-			.card ul {
-				margin: 0;
-				color: var(--muted);
-			}
-
-			.card ul {
-				padding-left: 18px;
-			}
-
-			.badge-blue {
-				color: var(--brand);
-			}
-
-			.badge-teal {
-				color: var(--teal);
-			}
-
-			.badge-green {
-				color: var(--green);
-			}
-
-			.badge-amber {
-				color: var(--amber);
-			}
-
-			.badge-red {
-				color: var(--red);
-			}
-
-			.badge-violet {
-				color: var(--violet);
-			}
-
-			.callout {
-				border-left: 4px solid var(--brand);
-				background: #eef5ff;
-			}
-
-			.warning {
-				border-left: 4px solid var(--amber);
-				background: #fff8eb;
-			}
-
-			@media (max-width: 1100px) {
-				.shell {
-					grid-template-columns: 1fr;
-				}
-
-				.sidebar {
-					position: static;
-					height: auto;
-				}
-
-				.nav {
-					display: grid;
-					grid-template-columns: repeat(2, 1fr);
-					gap: 4px 12px;
-				}
-
-				.flow {
-					grid-template-columns: 1fr;
-				}
-
-				.node:not(:last-child)::after {
-					display: none;
-				}
-			}
-
-			@media (max-width: 860px) {
-				.span-3,
-				.span-4,
-				.span-5,
-				.span-6,
-				.span-7,
-				.span-8 {
-					grid-column: span 12;
-				}
-			}
-		</style>
-	</head>
-	<body>
-		<div class="shell">
-			<aside class="sidebar">
-				<div class="logo">
-					<div class="logo-mark">CX</div>
-					<div>
-						<strong>CX2.0 UI</strong>
-						<span>Implementation Notes</span>
-					</div>
-				</div>
-
-				<div class="nav-label">Mục lục</div>
-				<nav class="nav">
-					<a href="#summary">Tổng quan</a>
-					<a href="#runtime">Luồng runtime</a>
-					<a href="#structure">Cấu trúc source</a>
-					<a href="#routing">Routing & page resolver</a>
-					<a href="#directus">Directus contract</a>
-					<a href="#components">Component system</a>
-					<a href="#collection">Collection page</a>
-					<a href="#api">API layer</a>
-					<a href="#state">State, i18n, theme</a>
-					<a href="#notes">Ghi chú hiện trạng</a>
-				</nav>
-			</aside>
-
-			<main>
-				<header class="hero">
-					<h1>Tài liệu hệ thống UI hiện tại</h1>
-					<p>
-						Trang này mô tả source <code>/ui</code> theo trạng thái code đang có: Next.js App
-						Router, giao diện cấu hình từ Directus, sidebar động, trang collection dùng metadata
-						field/collection, i18n, theme và state dùng Zustand.
-					</p>
-					<div class="hero-meta">
-						<span class="pill">Scope: <code>ui/src</code></span>
-						<span class="pill">Generated: 2026-05-20</span>
-						<span class="pill">Entry: <code>src/app/page.tsx -> /dashboard</code></span>
-					</div>
-				</header>
-
-				<div class="content">
-					<section id="summary" class="section">
-						<div class="grid">
-							<div class="card span-3 kpi">
-								<strong>Next 15</strong>
-								<span>App Router, route group <code>(default)</code>, <code>(auth)</code></span>
-							</div>
-							<div class="card span-3 kpi">
-								<strong>119</strong>
-								<span>file source chính trong <code>ui/src</code></span>
-							</div>
-							<div class="card span-3 kpi">
-								<strong>2</strong>
-								<span>locale hiện có: <code>vi</code> mặc định, <code>en</code></span>
-							</div>
-							<div class="card span-3 kpi">
-								<strong>Directus</strong>
-								<span>REST là luồng chính, GraphQL đã có client phụ trợ</span>
-							</div>
-						</div>
-					</section>
-
-					<section id="runtime" class="section">
-						<h2>Luồng Runtime Tổng Quát</h2>
-						<div class="flow">
-							<div class="node">
-								<span class="tag">1</span>
-								<b>User truy cập route</b>
-								<p><code>/</code> redirect sang <code>/dashboard</code>; mọi route app chạy qua dynamic slug.</p>
-							</div>
-							<div class="node">
-								<span class="tag">2</span>
-								<b>Root providers</b>
-								<p><code>next-intl</code>, <code>next-themes</code>, font Be Vietnam Pro và toast.</p>
-							</div>
-							<div class="node">
-								<span class="tag">3</span>
-								<b>App layout</b>
-								<p>Load sidebar config, fields, collections; cache vào Zustand store.</p>
-							</div>
-							<div class="node">
-								<span class="tag">4</span>
-								<b>PageResolver</b>
-								<p>Tìm page trong <code>ui_pages</code> theo route candidate từ dài đến ngắn.</p>
-							</div>
-							<div class="node">
-								<span class="tag">5</span>
-								<b>Render page</b>
-								<p><code>collection</code> render CRUD table; <code>custom</code> render qua registry.</p>
-							</div>
-						</div>
-					</section>
-
-					<section id="structure" class="section">
-						<h2>Cấu Trúc Source UI</h2>
-						<div class="grid">
-							<div class="card span-7">
-								<ul class="tree">
-									<li>ui/src/app - App Router layouts, pages, API routes</li>
-									<li>ui/src/app/(default)/[...slug]/page.tsx - dynamic app pages</li>
-									<li>ui/src/app/(auth) - signin/signup shell</li>
-									<li>ui/src/components/shared - design/component layers</li>
-									<li>ui/src/components/non-shared - feature-specific UI</li>
-									<li>ui/src/lib/api - Directus REST, GraphQL, helper request</li>
-									<li>ui/src/lib/store - Zustand app store</li>
-									<li>ui/src/lib/i18n - next-intl config and locale files</li>
-									<li>ui/src/lib/type - Directus/API/component TypeScript contracts</li>
-									<li>ui/src/lib/utils - form, query, breakpoint, storage utilities</li>
-								</ul>
-							</div>
-							<div class="card span-5">
-								<h3>Stack chính</h3>
-								<div class="stack">
-									<span class="tag">React 19</span>
-									<span class="tag">Next.js 15</span>
-									<span class="tag">TypeScript strict</span>
-									<span class="tag">Tailwind CSS</span>
-									<span class="tag">next-intl</span>
-									<span class="tag">next-themes</span>
-									<span class="tag">Zustand</span>
-									<span class="tag">Formik + Yup</span>
-									<span class="tag">Apollo Client</span>
-									<span class="tag">Lucide Icons</span>
-									<span class="tag">Radix UI</span>
-								</div>
-							</div>
-						</div>
-					</section>
-
-					<section id="routing" class="section">
-						<h2>Routing & Page Resolver</h2>
-						<div class="grid">
-							<div class="card span-6">
-								<h3>Route strategy</h3>
-								<div class="timeline">
-									<div class="step">
-										<div class="step-index">1</div>
-										<div>
-											<h3><code>src/app/page.tsx</code></h3>
-											<p>Trang gốc redirect thẳng về <code>/dashboard</code>.</p>
-										</div>
-									</div>
-									<div class="step">
-										<div class="step-index">2</div>
-										<div>
-											<h3><code>(default)/layout.tsx</code></h3>
-											<p>Bọc toàn bộ page app bằng <code>AppLayoutTemplate</code> để có sidebar.</p>
-										</div>
-									</div>
-									<div class="step">
-										<div class="step-index">3</div>
-										<div>
-											<h3><code>(default)/[...slug]/page.tsx</code></h3>
-											<p>Route động, <code>dynamic = "force-dynamic"</code>, truyền slug vào <code>PageResolver</code>.</p>
-										</div>
-									</div>
-									<div class="step">
-										<div class="step-index">4</div>
-										<div>
-											<h3><code>PageResolver.tsx</code></h3>
-											<p>Normalize route, thử các route candidate, gọi Directus <code>ui_pages</code>.</p>
-										</div>
-									</div>
-								</div>
-							</div>
-
-							<div class="card span-6">
-								<h3>Quyết định render</h3>
-								<table>
-									<thead>
-										<tr>
-											<th><code>page_type</code></th>
-											<th>Điều kiện</th>
-											<th>Component</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr>
-											<td><code>collection</code></td>
-											<td>Cần <code>collection_key</code></td>
-											<td><code>CollectionPage</code></td>
-										</tr>
-										<tr>
-											<td><code>custom</code></td>
-											<td><code>component_key</code> hoặc <code>key</code> có trong registry</td>
-											<td>Hiện có <code>dashboard -> DashboardPage</code></td>
-										</tr>
-										<tr>
-											<td>Không khớp</td>
-											<td>Không có page, disabled, thiếu key/component</td>
-											<td><code>notFound()</code></td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-						</div>
-					</section>
-
-					<section id="directus" class="section">
-						<h2>Directus Contract</h2>
-						<div class="grid">
-							<div class="card span-6">
-								<h3><code>ui_pages</code></h3>
-								<table>
-									<thead>
-										<tr>
-											<th>Field</th>
-											<th>Vai trò trong UI</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr>
-											<td><code>route</code></td>
-											<td>Được <code>PageResolver</code> dùng để match URL.</td>
-										</tr>
-										<tr>
-											<td><code>page_type</code></td>
-											<td>Chọn giữa page collection hoặc custom component.</td>
-										</tr>
-										<tr>
-											<td><code>collection_key</code></td>
-											<td>Tên Directus collection dùng cho <code>CollectionPage</code>.</td>
-										</tr>
-										<tr>
-											<td><code>component_key</code></td>
-											<td>Key tra trong <code>customPageRegistry</code>.</td>
-										</tr>
-										<tr>
-											<td><code>is_enabled</code></td>
-											<td>False thì route trả 404.</td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-
-							<div class="card span-6">
-								<h3><code>ui_sidebar_items</code></h3>
-								<table>
-									<thead>
-										<tr>
-											<th>Field</th>
-											<th>Vai trò trong sidebar</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr>
-											<td><code>type</code></td>
-											<td><code>group</code>, <code>collapse</code>, <code>item</code> quyết định cấu trúc menu.</td>
-										</tr>
-										<tr>
-											<td><code>parent_id</code></td>
-											<td>Dựng cây cha-con cho group/collapse/sub item.</td>
-										</tr>
-										<tr>
-											<td><code>page_id.route</code></td>
-											<td>Route thật cho link sidebar.</td>
-										</tr>
-										<tr>
-											<td><code>translations</code></td>
-											<td>Label theo locale hiện tại.</td>
-										</tr>
-										<tr>
-											<td><code>sort_order</code></td>
-											<td>Sắp xếp item trong cùng cấp.</td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-						</div>
-					</section>
-
-					<section id="components" class="section">
-						<h2>Component System</h2>
-						<div class="grid">
-							<div class="card span-4">
-								<h3 class="badge-blue">Atoms</h3>
-								<p>
-									Các phần tử nhỏ: <code>Icon</code>, <code>Breadcrumb</code>, <code>TableHeader</code>,
-									<code>TableBody</code>, toggles, dropdown nhỏ, search input.
-								</p>
-							</div>
-							<div class="card span-4">
-								<h3 class="badge-teal">Molecules</h3>
-								<p>
-									Tổ hợp input/action: <code>Button</code>, <code>InputForm</code>, <code>SelectForm</code>,
-									<code>Modal</code>, <code>Pagination</code>, <code>SidebarMenu</code>.
-								</p>
-							</div>
-							<div class="card span-4">
-								<h3 class="badge-green">Organisms</h3>
-								<p>
-									Cụm UI lớn: <code>Sidebar</code>, <code>DataTable</code>, <code>Filter</code>. Đây là
-									nơi workflow và trạng thái tương tác bắt đầu rõ hơn.
-								</p>
-							</div>
-							<div class="card span-6">
-								<h3 class="badge-violet">Templates</h3>
-								<p>
-									<code>AppLayoutTemplate</code> chịu trách nhiệm dữ liệu nền của app và sidebar.
-									<code>DefaultPageLayout</code> cung cấp header, breadcrumb, action area và vùng nội dung scroll.
-								</p>
-							</div>
-							<div class="card span-6">
-								<h3 class="badge-amber">Pages</h3>
-								<p>
-									<code>PageResolver</code> là lớp điều phối. Page cụ thể gồm
-									<code>DashboardPage</code> và <code>CollectionPage</code>; custom page mới cần đăng ký
-									trong <code>customPageRegistry.ts</code>.
-								</p>
-							</div>
-						</div>
-					</section>
-
-					<section id="collection" class="section">
-						<h2>Collection Page CRUD</h2>
-						<div class="grid">
-							<div class="card span-7">
-								<h3>Luồng dữ liệu</h3>
-								<div class="timeline">
-									<div class="step">
-										<div class="step-index">A</div>
-										<div>
-											<h3>Metadata từ store</h3>
-											<p>
-												Fields và collections được load một lần ở layout. <code>CollectionPage</code>
-												lọc fields theo collection hiện tại.
-											</p>
-										</div>
-									</div>
-									<div class="step">
-										<div class="step-index">B</div>
-										<div>
-											<h3>Dựng columns</h3>
-											<p>
-												Field type được map sang <code>ColumnType</code>; label lấy từ
-												<code>meta.translations</code>; hidden field bị ẩn.
-											</p>
-										</div>
-									</div>
-									<div class="step">
-										<div class="step-index">C</div>
-										<div>
-											<h3>Load records</h3>
-											<p>
-												<code>apiGetItems</code> gọi <code>/items/{collection}</code> với page, limit,
-												sort, search và filter params.
-											</p>
-										</div>
-									</div>
-									<div class="step">
-										<div class="step-index">D</div>
-										<div>
-											<h3>Create/Edit/Delete</h3>
-											<p>
-												<code>AddRecordModal</code> dùng Formik/Yup và field metadata. Delete dùng
-												<code>ConfirmModal</code>, sau đó reload total và table.
-											</p>
-										</div>
-									</div>
-								</div>
-							</div>
-
-							<div class="card span-5">
-								<h3>Form động trong <code>AddRecordModal</code></h3>
-								<table>
-									<thead>
-										<tr>
-											<th>Field metadata/type</th>
-											<th>UI control</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr>
-											<td><code>options.choices</code></td>
-											<td><code>SelectForm</code></td>
-										</tr>
-										<tr>
-											<td><code>boolean</code></td>
-											<td>Checkbox</td>
-										</tr>
-										<tr>
-											<td><code>text</code>, <code>json</code>, <code>csv</code></td>
-											<td><code>textarea</code></td>
-										</tr>
-										<tr>
-											<td><code>date</code>, <code>time</code>, <code>datetime</code></td>
-											<td>Native date/time input</td>
-										</tr>
-										<tr>
-											<td><code>integer</code>, <code>float</code>, <code>decimal</code></td>
-											<td>Number input + normalize payload</td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-						</div>
-					</section>
-
-					<section id="api" class="section">
-						<h2>API Layer</h2>
-						<div class="grid">
-							<div class="card span-6">
-								<h3 class="badge-blue">REST chính</h3>
-								<p>
-									<code>src/lib/utils/apiConfig.ts</code> tạo wrapper <code>apiGet</code>,
-									<code>apiPost</code>, <code>apiPatch</code>, <code>apiDelete</code>. Base URL lấy từ
-									<code>NEXT_PUBLIC_API_HOST</code>, token lấy từ <code>NEXT_PUBLIC_DIRECTUS_TOKEN</code>
-									trong các module REST.
-								</p>
-								<table>
-									<thead>
-										<tr>
-											<th>Module</th>
-											<th>Endpoint</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr>
-											<td><code>ui_pages.api.ts</code></td>
-											<td><code>/items/ui_pages</code></td>
-										</tr>
-										<tr>
-											<td><code>ui_sidebar_items.api.ts</code></td>
-											<td><code>/items/ui_sidebar_items</code></td>
-										</tr>
-										<tr>
-											<td><code>items.ts</code></td>
-											<td><code>/items/{collection}</code></td>
-										</tr>
-										<tr>
-											<td><code>fields.api.ts</code></td>
-											<td><code>/fields</code></td>
-										</tr>
-										<tr>
-											<td><code>collections.ts</code></td>
-											<td><code>/collections</code></td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-
-							<div class="card span-6">
-								<h3 class="badge-violet">GraphQL phụ trợ</h3>
-								<p>
-									<code>src/lib/api/graphql</code> có Apollo client cho <code>/graphql</code> và
-									<code>/graphql/system</code>. Hiện code đã có helpers đọc collections/items, nhưng luồng
-									collection page hiện tại vẫn dùng REST.
-								</p>
-								<div class="card callout" style="margin-top: 14px; box-shadow: none">
-									<h3>Server-side helper</h3>
-									<p>
-										<code>src/lib/api/directus.ts</code> dùng <code>NEXT_PUBLIC_DIRECTUS_URL</code> và
-										<code>DIRECTUS_TOKEN</code>, có <code>directusRequest</code> và
-										<code>getDirectusHealth</code>. API route <code>/api/collections/fields</code> dùng helper này.
-									</p>
-								</div>
-							</div>
-						</div>
-					</section>
-
-					<section id="state" class="section">
-						<h2>State, i18n, Theme</h2>
-						<div class="grid">
-							<div class="card span-4">
-								<h3 class="badge-green">Zustand store</h3>
-								<p>
-									<code>appStore.ts</code> lưu trạng thái sidebar, danh sách Directus fields và collections.
-									Đây là metadata dùng chung cho các page collection.
-								</p>
-							</div>
-							<div class="card span-4">
-								<h3 class="badge-blue">next-intl</h3>
-								<p>
-									Locale lấy từ cookie <code>NEXT_LOCALE</code>, mặc định <code>vi</code>. Message được merge từ
-									<code>common.json</code>, <code>component.json</code>, <code>tenant-service.json</code>.
-								</p>
-							</div>
-							<div class="card span-4">
-								<h3 class="badge-violet">Theme</h3>
-								<p>
-									<code>AppThemeProvider</code> dùng <code>next-themes</code> với attribute
-									<code>class</code>. Tailwind dark mode dựa trên class <code>dark</code>.
-								</p>
-							</div>
-						</div>
-					</section>
-
-					<section id="notes" class="section">
-						<h2>Ghi Chú Hiện Trạng</h2>
-						<div class="grid">
-							<div class="card span-6 warning">
-								<h3 class="badge-amber">Điểm cần chú ý khi phát triển tiếp</h3>
-								<ul>
-									<li><code>middleware.ts</code> hiện chỉ log pathname và <code>NextResponse.next()</code>.</li>
-									<li><code>PageResolver</code> và một số component còn <code>console.log</code> debug.</li>
-									<li><code>signin/page.tsx</code> hiện là khung rỗng, chưa dùng <code>SignInForm</code>.</li>
-									<li><code>Filter</code> đã có component nhưng <code>CollectionPage</code> đang truyền filters rỗng.</li>
-									<li><code>AppSidebar.tsx</code> là sidebar mẫu theo shadcn-style, chưa nằm trong layout chính.</li>
-								</ul>
-							</div>
-							<div class="card span-6 callout">
-								<h3 class="badge-blue">Cách thêm page mới</h3>
-								<ul>
-									<li>Page collection: tạo record <code>ui_pages</code> với <code>page_type=collection</code> và <code>collection_key</code>.</li>
-									<li>Page custom: tạo component, export trong <code>customPageRegistry.ts</code>, rồi map bằng <code>component_key</code>.</li>
-									<li>Sidebar: tạo record <code>ui_sidebar_items</code>, set <code>page_id</code>, <code>type</code>, <code>parent_id</code>, <code>sort_order</code>.</li>
-									<li>Nhãn đa ngôn ngữ: ưu tiên <code>translations[locale].title</code> hoặc field meta translations.</li>
-								</ul>
-							</div>
-						</div>
-					</section>
-				</div>
-			</main>
-		</div>
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CX2.0 UI - System Implementation Notes</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172033;
+        --muted: #647083;
+        --soft: #f3f6fb;
+        --line: #d8e0ec;
+        --panel: #ffffff;
+        --brand: #1769e0;
+        --brand-soft: #eaf2ff;
+        --teal: #0f8f8c;
+        --green: #25845a;
+        --amber: #a45f00;
+        --red: #c2414b;
+        --violet: #6d5bd0;
+        --shadow: 0 14px 36px rgba(23, 32, 51, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        background: #f7f9fc;
+        color: var(--ink);
+        line-height: 1.55;
+      }
+
+      a {
+        color: var(--brand);
+        text-decoration: none;
+      }
+
+      code {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #f8fafc;
+        padding: 0.12rem 0.34rem;
+        font-size: 0.9em;
+        color: #36445a;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        border-right: 1px solid var(--line);
+        background: #fff;
+        padding: 28px 22px;
+        overflow: auto;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 28px;
+      }
+
+      .logo-mark {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: var(--brand);
+        color: #fff;
+        font-weight: 800;
+      }
+
+      .logo strong {
+        display: block;
+        font-size: 0.98rem;
+      }
+
+      .logo span,
+      .nav-label,
+      .small {
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .nav-label {
+        margin: 24px 0 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 700;
+      }
+
+      .nav a {
+        display: block;
+        border-radius: 8px;
+        padding: 8px 10px;
+        color: var(--ink);
+        font-size: 0.92rem;
+      }
+
+      .nav a:hover {
+        background: var(--brand-soft);
+        color: var(--brand);
+      }
+
+      main {
+        min-width: 0;
+      }
+
+      .hero {
+        background: #0d1b32;
+        color: #fff;
+        padding: 54px clamp(24px, 5vw, 72px) 46px;
+      }
+
+      .hero h1 {
+        max-width: 980px;
+        margin: 0 0 16px;
+        font-size: clamp(2rem, 4vw, 4rem);
+        line-height: 1.05;
+        letter-spacing: 0;
+      }
+
+      .hero p {
+        max-width: 860px;
+        margin: 0;
+        color: #cbd7e8;
+        font-size: 1.08rem;
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 26px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 7px 12px;
+        color: #eaf2ff;
+        font-size: 0.9rem;
+      }
+
+      .content {
+        padding: 32px clamp(18px, 4vw, 56px) 64px;
+      }
+
+      .section {
+        margin-bottom: 28px;
+      }
+
+      .section h2 {
+        margin: 0 0 14px;
+        font-size: 1.55rem;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: 0 1px 2px rgba(23, 32, 51, 0.04);
+        padding: 18px;
+      }
+
+      .span-3 {
+        grid-column: span 3;
+      }
+
+      .span-4 {
+        grid-column: span 4;
+      }
+
+      .span-5 {
+        grid-column: span 5;
+      }
+
+      .span-6 {
+        grid-column: span 6;
+      }
+
+      .span-7 {
+        grid-column: span 7;
+      }
+
+      .span-8 {
+        grid-column: span 8;
+      }
+
+      .span-12 {
+        grid-column: span 12;
+      }
+
+      .kpi {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .kpi strong {
+        font-size: 1.8rem;
+        line-height: 1;
+      }
+
+      .kpi span {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(130px, 1fr));
+        align-items: stretch;
+        gap: 12px;
+      }
+
+      .node {
+        position: relative;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        padding: 14px;
+        min-height: 116px;
+      }
+
+      .node:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: -12px;
+        width: 12px;
+        border-top: 2px solid var(--line);
+      }
+
+      .node b {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .node p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .tag {
+        display: inline-flex;
+        border-radius: 999px;
+        background: var(--soft);
+        padding: 3px 9px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .stack .tag {
+        background: var(--brand-soft);
+        color: #155fc7;
+      }
+
+      .tree {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        font-size: 0.9rem;
+      }
+
+      .tree li {
+        position: relative;
+        margin: 0;
+        padding: 3px 0 3px 20px;
+        color: #26354f;
+      }
+
+      .tree li::before {
+        content: "";
+        position: absolute;
+        left: 6px;
+        top: 0;
+        bottom: 0;
+        border-left: 1px solid #c9d4e5;
+      }
+
+      .tree li::after {
+        content: "";
+        position: absolute;
+        left: 6px;
+        top: 14px;
+        width: 10px;
+        border-top: 1px solid #c9d4e5;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: #36445a;
+        background: #f8fafc;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 12px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+      }
+
+      .step-index {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        background: var(--brand);
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.88rem;
+      }
+
+      .step h3,
+      .card h3 {
+        margin: 0 0 6px;
+        font-size: 1rem;
+      }
+
+      .step p,
+      .card p,
+      .card ul {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .card ul {
+        padding-left: 18px;
+      }
+
+      .badge-blue {
+        color: var(--brand);
+      }
+
+      .badge-teal {
+        color: var(--teal);
+      }
+
+      .badge-green {
+        color: var(--green);
+      }
+
+      .badge-amber {
+        color: var(--amber);
+      }
+
+      .badge-red {
+        color: var(--red);
+      }
+
+      .badge-violet {
+        color: var(--violet);
+      }
+
+      .callout {
+        border-left: 4px solid var(--brand);
+        background: #eef5ff;
+      }
+
+      .warning {
+        border-left: 4px solid var(--amber);
+        background: #fff8eb;
+      }
+
+      @media (max-width: 1100px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: static;
+          height: auto;
+        }
+
+        .nav {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 4px 12px;
+        }
+
+        .flow {
+          grid-template-columns: 1fr;
+        }
+
+        .node:not(:last-child)::after {
+          display: none;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .span-3,
+        .span-4,
+        .span-5,
+        .span-6,
+        .span-7,
+        .span-8 {
+          grid-column: span 12;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="logo">
+          <div class="logo-mark">CX</div>
+          <div>
+            <strong>CX2.0 UI</strong>
+            <span>Implementation Notes</span>
+          </div>
+        </div>
+
+        <div class="nav-label">Mục lục</div>
+        <nav class="nav">
+          <a href="#summary">Tổng quan</a>
+          <a href="#runtime">Luồng runtime</a>
+          <a href="#structure">Cấu trúc source</a>
+          <a href="#routing">Routing & page resolver</a>
+          <a href="#directus">Directus contract</a>
+          <a href="#components">Component system</a>
+          <a href="#collection">Collection page</a>
+          <a href="#api">API layer</a>
+          <a href="#state">State, i18n, theme</a>
+          <a href="#notes">Ghi chú hiện trạng</a>
+        </nav>
+      </aside>
+
+      <main>
+        <header class="hero">
+          <h1>Tài liệu hệ thống UI hiện tại</h1>
+          <p>
+            Trang này mô tả source <code>/ui</code> theo trạng thái code đang
+            có: Next.js App Router, giao diện cấu hình từ Directus, sidebar
+            động, trang collection dùng metadata field/collection, i18n, theme
+            và state dùng Zustand.
+          </p>
+          <div class="hero-meta">
+            <span class="pill">Scope: <code>ui/src</code></span>
+            <span class="pill">Generated: 2026-05-20</span>
+            <span class="pill"
+              >Entry: <code>src/app/page.tsx -> /dashboard</code></span
+            >
+          </div>
+        </header>
+
+        <div class="content">
+          <section id="summary" class="section">
+            <div class="grid">
+              <div class="card span-3 kpi">
+                <strong>Next 15</strong>
+                <span
+                  >App Router, route group <code>(default)</code>,
+                  <code>(auth)</code></span
+                >
+              </div>
+              <div class="card span-3 kpi">
+                <strong>130</strong>
+                <span>file source chính trong <code>ui/src</code></span>
+              </div>
+              <div class="card span-3 kpi">
+                <strong>2</strong>
+                <span
+                  >locale hiện có: <code>vi</code> mặc định,
+                  <code>en</code></span
+                >
+              </div>
+              <div class="card span-3 kpi">
+                <strong>Directus</strong>
+                <span>REST là luồng chính, GraphQL đã có client phụ trợ</span>
+              </div>
+            </div>
+          </section>
+
+          <section id="runtime" class="section">
+            <h2>Luồng Runtime Tổng Quát</h2>
+            <div class="flow">
+              <div class="node">
+                <span class="tag">1</span>
+                <b>User truy cập route</b>
+                <p>
+                  <code>/</code> redirect sang <code>/dashboard</code>; mọi
+                  route app chạy qua dynamic slug.
+                </p>
+              </div>
+              <div class="node">
+                <span class="tag">2</span>
+                <b>Root providers</b>
+                <p>
+                  <code>next-intl</code>, <code>next-themes</code>, font Be
+                  Vietnam Pro và toast.
+                </p>
+              </div>
+              <div class="node">
+                <span class="tag">3</span>
+                <b>App layout</b>
+                <p>
+                  Load sidebar config, fields, collections, translations; cache
+                  vào Zustand store.
+                </p>
+              </div>
+              <div class="node">
+                <span class="tag">4</span>
+                <b>PageResolver</b>
+                <p>
+                  Tìm page trong <code>ui_pages</code> theo route candidate từ
+                  dài đến ngắn.
+                </p>
+              </div>
+              <div class="node">
+                <span class="tag">5</span>
+                <b>Render page</b>
+                <p>
+                  <code>collection</code> render CRUD table;
+                  <code>custom</code> render qua registry.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section id="structure" class="section">
+            <h2>Cấu Trúc Source UI</h2>
+            <div class="grid">
+              <div class="card span-7">
+                <ul class="tree">
+                  <li>ui/src/app - App Router layouts, pages, API routes</li>
+                  <li>
+                    ui/src/app/(default)/[...slug]/page.tsx - dynamic app pages
+                  </li>
+                  <li>ui/src/app/(auth) - signin/signup shell</li>
+                  <li>ui/src/components/shared - design/component layers</li>
+                  <li>ui/src/components/non-shared - feature-specific UI</li>
+                  <li>
+                    ui/src/lib/api - Directus REST, GraphQL, helper request
+                  </li>
+                  <li>ui/src/lib/store - Zustand app store</li>
+                  <li>ui/src/lib/i18n - next-intl config and locale files</li>
+                  <li>
+                    ui/src/lib/type - Directus/API/component TypeScript
+                    contracts
+                  </li>
+                  <li>
+                    ui/src/lib/utils - form, query, breakpoint, storage
+                    utilities
+                  </li>
+                </ul>
+              </div>
+              <div class="card span-5">
+                <h3>Stack chính</h3>
+                <div class="stack">
+                  <span class="tag">React 19</span>
+                  <span class="tag">Next.js 15</span>
+                  <span class="tag">TypeScript strict</span>
+                  <span class="tag">Tailwind CSS</span>
+                  <span class="tag">next-intl</span>
+                  <span class="tag">next-themes</span>
+                  <span class="tag">Zustand</span>
+                  <span class="tag">Formik + Yup</span>
+                  <span class="tag">Apollo Client</span>
+                  <span class="tag">Lucide Icons</span>
+                  <span class="tag">Radix UI</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="routing" class="section">
+            <h2>Routing & Page Resolver</h2>
+            <div class="grid">
+              <div class="card span-6">
+                <h3>Route strategy</h3>
+                <div class="timeline">
+                  <div class="step">
+                    <div class="step-index">1</div>
+                    <div>
+                      <h3><code>src/app/page.tsx</code></h3>
+                      <p>
+                        Trang gốc redirect thẳng về <code>/dashboard</code>.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="step">
+                    <div class="step-index">2</div>
+                    <div>
+                      <h3><code>(default)/layout.tsx</code></h3>
+                      <p>
+                        Bọc toàn bộ page app bằng
+                        <code>AppLayoutTemplate</code> để có sidebar.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="step">
+                    <div class="step-index">3</div>
+                    <div>
+                      <h3><code>(default)/[...slug]/page.tsx</code></h3>
+                      <p>
+                        Route động, <code>dynamic = "force-dynamic"</code>,
+                        truyền slug vào <code>PageResolver</code>.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="step">
+                    <div class="step-index">4</div>
+                    <div>
+                      <h3><code>PageResolver.tsx</code></h3>
+                      <p>
+                        Normalize route, thử các route candidate, gọi Directus
+                        <code>ui_pages</code>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card span-6">
+                <h3>Quyết định render</h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th><code>page_type</code></th>
+                      <th>Điều kiện</th>
+                      <th>Component</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>collection</code></td>
+                      <td>Cần <code>collection_key</code></td>
+                      <td><code>CollectionPage</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>custom</code></td>
+                      <td>
+                        <code>component_key</code> hoặc <code>key</code> có
+                        trong registry
+                      </td>
+                      <td>Hiện có <code>dashboard -> DashboardPage</code></td>
+                    </tr>
+                    <tr>
+                      <td>Không khớp</td>
+                      <td>Không có page, disabled, thiếu key/component</td>
+                      <td><code>notFound()</code></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section id="directus" class="section">
+            <h2>Directus Contract</h2>
+            <div class="grid">
+              <div class="card span-6">
+                <h3><code>ui_pages</code></h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Field</th>
+                      <th>Vai trò trong UI</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>route</code></td>
+                      <td>Được <code>PageResolver</code> dùng để match URL.</td>
+                    </tr>
+                    <tr>
+                      <td><code>page_type</code></td>
+                      <td>Chọn giữa page collection hoặc custom component.</td>
+                    </tr>
+                    <tr>
+                      <td><code>collection_key</code></td>
+                      <td>
+                        Tên Directus collection dùng cho
+                        <code>CollectionPage</code>.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><code>component_key</code></td>
+                      <td>Key tra trong <code>customPageRegistry</code>.</td>
+                    </tr>
+                    <tr>
+                      <td><code>is_enabled</code></td>
+                      <td>False thì route trả 404.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="card span-6">
+                <h3><code>ui_sidebar_items</code></h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Field</th>
+                      <th>Vai trò trong sidebar</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>type</code></td>
+                      <td>
+                        <code>group</code>, <code>collapse</code>,
+                        <code>item</code> quyết định cấu trúc menu.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><code>parent_id</code></td>
+                      <td>Dựng cây cha-con cho group/collapse/sub item.</td>
+                    </tr>
+                    <tr>
+                      <td><code>page_id.route</code></td>
+                      <td>Route thật cho link sidebar.</td>
+                    </tr>
+                    <tr>
+                      <td><code>translations</code></td>
+                      <td>Label theo locale hiện tại.</td>
+                    </tr>
+                    <tr>
+                      <td><code>sort_order</code></td>
+                      <td>Sắp xếp item trong cùng cấp.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="card span-12">
+                <h3><code>translations</code></h3>
+                <p>
+                  Directus translations được preload qua
+                  <code>apiGetTranslations()</code> và lưu trong
+                  <code>appStore.translations</code>. Dynamic form dùng dữ liệu
+                  này để resolve option label có dạng <code>$t:key</code> theo
+                  locale hiện tại.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section id="components" class="section">
+            <h2>Component System</h2>
+            <div class="grid">
+              <div class="card span-4">
+                <h3 class="badge-blue">Atoms</h3>
+                <p>
+                  Các phần tử nhỏ: <code>Icon</code>, <code>Breadcrumb</code>,
+                  <code>TableHeader</code>, <code>TableBody</code>, toggles,
+                  dropdown nhỏ, search input.
+                </p>
+              </div>
+              <div class="card span-4">
+                <h3 class="badge-teal">Molecules</h3>
+                <p>
+                  Tổ hợp input/action: <code>Button</code>,
+                  <code>InputForm</code>, <code>SelectForm</code>,
+                  <code>Modal</code>, <code>Pagination</code>,
+                  <code>SidebarMenu</code>.
+                </p>
+              </div>
+              <div class="card span-4">
+                <h3 class="badge-green">Organisms</h3>
+                <p>
+                  Cụm UI lớn: <code>Sidebar</code>, <code>DataTable</code>,
+                  <code>Filter</code>. Đây là nơi workflow và trạng thái tương
+                  tác bắt đầu rõ hơn.
+                </p>
+              </div>
+              <div class="card span-6">
+                <h3 class="badge-violet">Templates</h3>
+                <p>
+                  <code>AppLayoutTemplate</code> chịu trách nhiệm dữ liệu nền
+                  của app và sidebar. <code>DefaultPageLayout</code> cung cấp
+                  header, breadcrumb, action area và vùng nội dung scroll.
+                </p>
+              </div>
+              <div class="card span-6">
+                <h3 class="badge-amber">Pages</h3>
+                <p>
+                  <code>PageResolver</code> là lớp điều phối. Page cụ thể gồm
+                  <code>DashboardPage</code> và <code>CollectionPage</code>;
+                  custom page mới cần đăng ký trong
+                  <code>customPageRegistry.ts</code>.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section id="collection" class="section">
+            <h2>Collection Page CRUD</h2>
+            <div class="grid">
+              <div class="card span-7">
+                <h3>Luồng dữ liệu</h3>
+                <div class="timeline">
+                  <div class="step">
+                    <div class="step-index">A</div>
+                    <div>
+                      <h3>Metadata từ store</h3>
+                      <p>
+                        Fields, collections và translations được load một lần ở layout.
+                        <code>CollectionPage</code>
+                        lọc fields theo collection hiện tại.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="step">
+                    <div class="step-index">B</div>
+                    <div>
+                      <h3>Dựng columns</h3>
+                      <p>
+                        Field type được map sang <code>ColumnType</code>; label
+                        lấy từ <code>meta.translations</code>; hidden field bị
+                        ẩn.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="step">
+                    <div class="step-index">C</div>
+                    <div>
+                      <h3>Load records</h3>
+                      <p>
+                        <code>apiGetItems</code> gọi
+                        <code>/items/{collection}</code> với page, limit, sort
+                        và filter params. Search state vẫn còn trong code nhưng
+                        input search đang được comment ở UI.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="step">
+                    <div class="step-index">D</div>
+                    <div>
+                      <h3>Create/Edit/Delete</h3>
+                      <p>
+                        <code>AddRecordModal</code> dùng Formik/Yup và field
+                        metadata. Delete dùng <code>ConfirmModal</code>, sau đó
+                        reload total và table.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card span-5">
+                <h3>Form động trong <code>AddRecordModal</code></h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Field metadata/type</th>
+                      <th>UI control</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>options.choices</code></td>
+                      <td>
+                        <code>SelectForm</code>; label dạng <code>$t:key</code>
+                        được resolve từ Directus <code>/translations</code>.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><code>boolean</code></td>
+                      <td>Checkbox</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <code>text</code>, <code>json</code>, <code>csv</code>
+                      </td>
+                      <td><code>textarea</code></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <code>date</code>, <code>time</code>,
+                        <code>datetime</code>
+                      </td>
+                      <td>Native date/time input</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <code>integer</code>, <code>float</code>,
+                        <code>decimal</code>
+                      </td>
+                      <td>Number input + normalize payload</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section id="api" class="section">
+            <h2>API Layer</h2>
+            <div class="grid">
+              <div class="card span-6">
+                <h3 class="badge-blue">REST chính</h3>
+                <p>
+                  <code>src/lib/utils/apiConfig.ts</code> tạo wrapper
+                  <code>apiGet</code>, <code>apiPost</code>,
+                  <code>apiPatch</code>, <code>apiDelete</code>. Base URL lấy từ
+                  <code>NEXT_PUBLIC_API_HOST</code>, token lấy từ
+                  <code>NEXT_PUBLIC_DIRECTUS_TOKEN</code>
+                  trong các module REST.
+                </p>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Module</th>
+                      <th>Endpoint</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>ui_pages.api.ts</code></td>
+                      <td><code>/items/ui_pages</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>ui_sidebar_items.api.ts</code></td>
+                      <td><code>/items/ui_sidebar_items</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>items.api.ts</code></td>
+                      <td><code>/items/{collection}</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>fields.api.ts</code></td>
+                      <td><code>/fields</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>collections.api.ts</code></td>
+                      <td><code>/collections</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>translations.api.ts</code></td>
+                      <td><code>/translations</code></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="card span-6">
+                <h3 class="badge-violet">GraphQL phụ trợ</h3>
+                <p>
+                  <code>src/lib/api/graphql</code> có Apollo client cho
+                  <code>/graphql</code> và <code>/graphql/system</code>. Hiện
+                  code đã có helpers đọc collections/items, nhưng luồng
+                  collection page hiện tại vẫn dùng REST.
+                </p>
+                <div
+                  class="card callout"
+                  style="margin-top: 14px; box-shadow: none"
+                >
+                  <h3>Server-side helper</h3>
+                  <p>
+                    <code>src/lib/api/directus.ts</code> dùng
+                    <code>NEXT_PUBLIC_DIRECTUS_URL</code> và
+                    <code>DIRECTUS_TOKEN</code>, có
+                    <code>directusRequest</code> và
+                    <code>getDirectusHealth</code>. API route
+                    <code>/api/collections/fields</code> dùng helper này.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="state" class="section">
+            <h2>State, i18n, Theme</h2>
+            <div class="grid">
+              <div class="card span-4">
+                <h3 class="badge-green">Zustand store</h3>
+                <p>
+                  <code>appStore.ts</code> lưu trạng thái sidebar, danh sách
+                  Directus fields, collections và translations. Đây là metadata
+                  dùng chung cho collection page và dynamic form.
+                </p>
+              </div>
+              <div class="card span-4">
+                <h3 class="badge-blue">next-intl</h3>
+                <p>
+                  Locale lấy từ cookie <code>NEXT_LOCALE</code>, mặc định
+                  <code>vi</code>. Message được merge từ
+                  <code>common.json</code>, <code>component.json</code>,
+                  <code>tenant-service.json</code>.
+                </p>
+              </div>
+              <div class="card span-4">
+                <h3 class="badge-violet">Theme</h3>
+                <p>
+                  <code>AppThemeProvider</code> dùng
+                  <code>next-themes</code> với attribute <code>class</code>.
+                  Tailwind dark mode dựa trên class <code>dark</code>.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section id="notes" class="section">
+            <h2>Ghi Chú Hiện Trạng</h2>
+            <div class="grid">
+              <div class="card span-6 warning">
+                <h3 class="badge-amber">Điểm cần chú ý khi phát triển tiếp</h3>
+                <ul>
+                  <li>
+                    <code>middleware.ts</code> hiện chỉ log pathname và
+                    <code>NextResponse.next()</code>.
+                  </li>
+                  <li>
+                    <code>PageResolver</code> và một số component còn
+                    <code>console.log</code> debug.
+                  </li>
+                  <li>
+                    <code>signin/page.tsx</code> hiện là khung rỗng, chưa dùng
+                    <code>SignInForm</code>.
+                  </li>
+                  <li>
+                    <code>Filter</code> đã có component nhưng
+                    <code>CollectionPage</code> đang truyền filters rỗng.
+                  </li>
+                  <li>
+                    <code>InputSearch</code> vẫn được import và search state vẫn
+                    tồn tại, nhưng phần input search trong
+                    <code>CollectionPage</code> đang được comment.
+                  </li>
+                  <li>
+                    <code>AppSidebar.tsx</code> là sidebar mẫu theo
+                    shadcn-style, chưa nằm trong layout chính.
+                  </li>
+                </ul>
+              </div>
+              <div class="card span-6 callout">
+                <h3 class="badge-blue">Cách thêm page mới</h3>
+                <ul>
+                  <li>
+                    Page collection: tạo record <code>ui_pages</code> với
+                    <code>page_type=collection</code> và
+                    <code>collection_key</code>.
+                  </li>
+                  <li>
+                    Page custom: tạo component, export trong
+                    <code>customPageRegistry.ts</code>, rồi map bằng
+                    <code>component_key</code>.
+                  </li>
+                  <li>
+                    Sidebar: tạo record <code>ui_sidebar_items</code>, set
+                    <code>page_id</code>, <code>type</code>,
+                    <code>parent_id</code>, <code>sort_order</code>.
+                  </li>
+                  <li>
+                    Nhãn đa ngôn ngữ: ưu tiên
+                    <code>translations[locale].title</code> hoặc field meta
+                    translations; option label dạng <code>$t:key</code> dùng
+                    Directus <code>/translations</code>.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
 </html>

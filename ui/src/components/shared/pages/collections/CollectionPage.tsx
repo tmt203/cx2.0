@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppStore } from "@/src/lib/store/appStore";
-import { apiDeleteItem, apiGetItems } from "@api/rest/directus/items";
+import { apiDeleteItem, apiGetItems } from "@api/rest/directus/items.api";
 import AddRecordModal from "@components/non-shared/collection/AddRecordModal";
 import { InputSearch, Skeleton } from "@components/shared/atoms";
 import { Button, ConfirmModal, Pagination } from "@components/shared/molecules";
@@ -154,7 +154,6 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 	const handleGetTotalRecords = useCallback(async () => {
 		try {
 			const response = await apiGetItems(collection, {
-				["filter[status][_neq]"]: "archived",
 				["aggregate[countDistinct]"]: "id",
 			});
 			if (!response.data || response.data.length === 0) {
@@ -265,13 +264,13 @@ const CollectionPage = ({ collection, recordId }: CollectionPageProps) => {
 					{/* Area: Left Action */}
 					<div className="flex gap-2">
 						{/* Area: Input Search */}
-						<InputSearch
+						{/* <InputSearch
 							placeholder="keyword"
 							minLength={5}
 							value={search}
 							onChange={setSearch}
 							onSearch={handleGetDataTable}
-						/>
+						/> */}
 
 						{/* Area: Filter */}
 						<Filter param={param} filters={{}} onFilter={() => {}} onParamChange={setParam} />

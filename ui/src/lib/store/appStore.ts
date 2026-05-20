@@ -2,6 +2,7 @@
 
 import type { DirectusCollection } from "@type/api/graphql/collections.type";
 import type { DirectusField } from "@type/api/rest/directus/field.type";
+import type { DirectusTranslation } from "@type/api/rest/directus/translations.type";
 import { create } from "zustand";
 
 export type SidebarMetadata = {
@@ -38,13 +39,18 @@ export type AppStoreState = {
 	collections: DirectusCollection[];
 	setCollections: (collections: DirectusCollection[]) => void;
 	clearCollections: () => void;
+
+	translations: DirectusTranslation[];
+	setTranslations: (translations: DirectusTranslation[]) => void;
+	clearTranslations: () => void;
 };
 
 const initialState = {
 	sidebar: { open: false, expanded: false },
 	fields: [],
 	collections: [],
-} satisfies Pick<AppStoreState, "sidebar" | "collections" | "fields">;
+	translations: [],
+} satisfies Pick<AppStoreState, "sidebar" | "collections" | "fields" | "translations">;
 
 export const useAppStore = create<AppStoreState>()((set) => ({
 	...initialState,
@@ -62,4 +68,7 @@ export const useAppStore = create<AppStoreState>()((set) => ({
 
 	setCollections: (collections) => set(() => ({ collections })),
 	clearCollections: () => set(() => ({ collections: [] })),
+
+	setTranslations: (translations) => set(() => ({ translations })),
+	clearTranslations: () => set(() => ({ translations: [] })),
 }));

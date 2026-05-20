@@ -20,11 +20,10 @@ export type InputType =
 	| "datetime-local";
 type InputState = "default" | "error" | "success" | "warning";
 
-export interface InputFormProps
-	extends Omit<
-		React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>,
-		"size" | "type"
-	> {
+export interface InputFormProps extends Omit<
+	React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>,
+	"size" | "type"
+> {
 	size?: Size;
 	label?: string;
 	type?: InputType;
@@ -32,6 +31,8 @@ export interface InputFormProps
 	state?: InputState;
 	placement?: Display;
 	errorMessage?: string;
+	errorMessageValues?: Record<string, string | number>;
+	noTranslateErrorMessage?: boolean;
 	noTranslateLabel?: boolean;
 	variant?: "default" | "v2";
 	icon?: keyof typeof LucideIcons;
@@ -56,6 +57,8 @@ const InputForm = ({
 	state = "default",
 	placement = "col",
 	errorMessage = "",
+	errorMessageValues,
+	noTranslateErrorMessage = false,
 	variant = "default",
 	iconDirection = "start",
 	noTranslateLabel = false,
@@ -101,6 +104,12 @@ const InputForm = ({
 			setIsFocused(focus);
 		};
 	}, []);
+
+	const resolvedErrorMessage = errorMessage
+		? noTranslateErrorMessage
+			? errorMessage
+			: t(errorMessage, errorMessageValues)
+		: "";
 
 	// Input Form V2
 	if (variant === "v2") {
@@ -177,7 +186,9 @@ const InputForm = ({
 				</div>
 
 				{/* Error message */}
-				{errorMessage && <p className="mt-1 text-xs italic text-danger-500">{t(errorMessage)}</p>}
+				{resolvedErrorMessage ? (
+					<p className="mt-1 text-xs italic text-danger-500">{resolvedErrorMessage}</p>
+				) : null}
 			</div>
 		);
 	}
@@ -269,8 +280,8 @@ const InputForm = ({
 					</div>
 				</div>
 			</div>
-			{errorMessage ? (
-				<p className="pl-4 text-xs italic text-danger-500">{t(errorMessage)}</p>
+			{resolvedErrorMessage ? (
+				<p className="pl-4 text-xs italic text-danger-500">{resolvedErrorMessage}</p>
 			) : null}
 		</div>
 	);

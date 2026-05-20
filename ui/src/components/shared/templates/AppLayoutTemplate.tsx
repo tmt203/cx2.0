@@ -9,7 +9,8 @@ import { SidebarMenu } from "../organisms/Sidebar";
 import type { GroupMenu } from "../molecules/SidebarMenu";
 import { apiGetFields } from "@api/rest/directus/fields.api";
 import { useAppStore } from "@/src/lib/store/appStore";
-import { apiGetCollections } from "@api/rest/directus/collections";
+import { apiGetCollections } from "@api/rest/directus/collections.api";
+import { apiGetTranslations } from "@api/rest/directus/translations.api";
 import type { UiSidebarItem } from "@type/api/rest/directus/ui_sidebar_items.type";
 
 export interface AppLayoutTemplateProps {
@@ -207,11 +208,24 @@ const AppLayoutTemplate = ({ children }: AppLayoutTemplateProps) => {
 	}, []);
 
 	/**
+	 * Handle get translations
+	 */
+	const handleGetTranslations = useCallback(async () => {
+		try {
+			const response = await apiGetTranslations();
+			if (!response || response.data.length === 0) return;
+			appStore.setTranslations(response.data);
+		} catch (error) {
+			console.log(error);
+		}
+	}, []);
+
+	/**
 	 * Retrieve data to app store
 	 */
 	const retrieveDataAppStore = useCallback(() => {
-		void Promise.all([handleGetAllFields(), handleGetCollections()]);
-	}, [handleGetAllFields, handleGetCollections]);
+		void Promise.all([handleGetAllFields(), handleGetCollections(), handleGetTranslations()]);
+	}, [handleGetAllFields, handleGetCollections, handleGetTranslations]);
 
 	// Load shared data into the app store when first load
 	useLayoutEffect(() => {

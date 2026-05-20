@@ -1,6 +1,6 @@
 "use client";
 
-import { apiCreateItem, apiGetItemById, apiUpdateItem } from "@api/rest/directus/items";
+import { apiCreateItem, apiGetItemById, apiUpdateItem } from "@api/rest/directus/items.api";
 import { InputForm, Modal, SelectForm } from "@components/shared/molecules";
 import { SelectOption } from "@type/common.type";
 import { DirectusField } from "@type/api/rest/directus/field.type";
@@ -14,6 +14,7 @@ import {
 	isGeneratedField,
 	normalizePayloadValue,
 } from "@utils/dynamicForm";
+import { useAppStore } from "@/src/lib/store/appStore";
 
 export interface AddRecordModalProps {
 	collection: string;
@@ -43,6 +44,7 @@ const AddRecordModal = ({
 	// Hooks
 	const t = useTranslations();
 	const locale = useLocale();
+	const translations = useAppStore((state) => state.translations);
 
 	const visibleFields = useMemo(() => {
 		return [...fields]
@@ -67,6 +69,16 @@ const AddRecordModal = ({
 			return result;
 		}, {});
 	}, [locale, visibleFields]);
+
+	const translationMap = useMemo(() => {
+		const normalizedLocale = locale.toLowerCase();
+		return translations.reduce<Record<string, string>>((result, item) => {
+			const language = item.language.toLowerCase();
+			if (!language.startsWith(normalizedLocale)) return result;
+			result[item.key] = item.value;
+			return result;
+		}, {});
+	}, [locale, translations]);
 
 	const isEditMode = mode === "edit";
 	const defaultInitialValues = useMemo(() => {
@@ -182,8 +194,16 @@ const AddRecordModal = ({
 	 */
 	const getSelectOptions = (field: DirectusField): SelectOption[] => {
 		const choices = getFieldMeta(field).options?.choices ?? [];
+		const resolveChoiceLabel = (choice: { text?: unknown; label?: unknown; value?: unknown }) => {
+			const rawLabel = String(choice.text ?? choice.label ?? choice.value ?? "");
+			if (rawLabel.startsWith("$t:")) {
+				const key = rawLabel.slice(3);
+				return translationMap[key] ?? key;
+			}
+			return rawLabel;
+		};
 		return choices.map((choice) => ({
-			label: String(choice.text ?? choice.label ?? choice.value),
+			label: resolveChoiceLabel(choice),
 			value: String(choice.value),
 			noTranslate: true,
 		}));
@@ -209,6 +229,7 @@ const AddRecordModal = ({
 		const touched = formik.touched[fieldName];
 		const error = formik.errors[fieldName];
 		const errorMessage = touched && typeof error === "string" ? error : "";
+		const errorMessageValues = { data: label };
 		const commonProps = {
 			id: fieldName,
 			name: fieldName,
@@ -220,6 +241,7 @@ const AddRecordModal = ({
 			onBlur: formik.handleBlur,
 			state: errorMessage ? ("error" as const) : ("default" as const),
 			errorMessage,
+			errorMessageValues,
 		};
 
 		if ((meta.options?.choices ?? []).length > 0) {
@@ -268,7 +290,9 @@ const AddRecordModal = ({
 						onBlur={formik.handleBlur}
 					/>
 					{errorMessage ? (
-						<p className="pl-4 text-xs italic text-danger-500">{t(errorMessage)}</p>
+						<p className="pl-4 text-xs italic text-danger-500">
+							{t(errorMessage, errorMessageValues)}
+						</p>
 					) : null}
 				</div>
 			);
