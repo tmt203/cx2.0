@@ -6,7 +6,15 @@ import { format, isValid, setHours, setMinutes, setSeconds } from "date-fns";
 import { vi } from "date-fns/locale";
 import { XCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { ChangeEvent, FocusEvent, MouseEvent, useCallback, useMemo, useState } from "react";
+import {
+	ChangeEvent,
+	FocusEvent,
+	MouseEvent,
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { DayPicker } from "react-day-picker";
 import { toast } from "react-toastify";
 
@@ -36,7 +44,7 @@ const DateTimePicker = ({
 	disabled,
 	errorMessage = "",
 	formatDateTime,
-	enableSeconds = false,
+	enableSeconds = true,
 	className,
 	onSelectDateTime,
 }: DateTimePickerProps) => {
@@ -44,7 +52,21 @@ const DateTimePicker = ({
 	const t = useTranslations();
 
 	// State
-	const [date, setDate] = useState<Date | undefined>(time ? new Date(`${time}`) : new Date());
+	const resolveDate = useCallback((value: DateTimePickerProps["time"]) => {
+		if (!value) return undefined;
+		if (value instanceof Date) return isValid(value) ? value : undefined;
+		if (typeof value === "number") {
+			const parsed = new Date(value);
+			return isValid(parsed) ? parsed : undefined;
+		}
+		if (typeof value === "string") {
+			const parsed = new Date(value);
+			return isValid(parsed) ? parsed : undefined;
+		}
+		return undefined;
+	}, []);
+
+	const [date, setDate] = useState<Date | undefined>(() => resolveDate(time));
 	const [timeValue, setTimeValue] = useState<string>("");
 	const timeFormat = enableSeconds ? "HH:mm:ss" : "HH:mm";
 	const displayFormat = enableSeconds ? "dd/MM/yyyy HH:mm:ss" : "dd/MM/yyyy HH:mm";
@@ -55,6 +77,15 @@ const DateTimePicker = ({
 		(value: string) => {
 			if (!value) return value;
 			if (enableSeconds) return value.length === 5 ? `${value}:00` : value;
+			return value.slice(0, 5);
+		},
+		[enableSeconds]
+	);
+
+	const normalizeTimeInput = useCallback(
+		(value: string) => {
+			if (!value) return value;
+			if (enableSeconds) return value.length === 5 ? `${value}:00` : value.slice(0, 8);
 			return value.slice(0, 5);
 		},
 		[enableSeconds]
@@ -71,9 +102,27 @@ const DateTimePicker = ({
 
 	const valueLabel = useMemo(() => {
 		if (!date) return t("filter_component.pick_date");
-		setTimeValue(format(date, timeFormat));
-		return `${format(date, displayFormat)}`;
-	}, [date, displayFormat, t, timeFormat]);
+		if (!timeValue) return `${format(date, displayFormat)}`;
+		const dayLabel = format(date, "dd/MM/yyyy");
+		return `${dayLabel} ${timeValue}`;
+	}, [date, displayFormat, t, timeValue]);
+
+	useEffect(() => {
+		const nextDate = resolveDate(time);
+		setDate(nextDate);
+		if (!time) {
+			setTimeValue("");
+			return;
+		}
+		if (typeof time === "string") {
+			const raw = time.includes("T") ? (time.split("T")[1]?.replace("Z", "") ?? "") : time;
+			setTimeValue(normalizeTimeInput(raw));
+			return;
+		}
+		if (nextDate && isValid(nextDate)) {
+			setTimeValue(normalizeTimeInput(format(nextDate, timeFormat)));
+		}
+	}, [enableSeconds, normalizeTimeInput, resolveDate, time, timeFormat]);
 
 	/**
 	 * Handle Time Change
@@ -81,20 +130,26 @@ const DateTimePicker = ({
 	 */
 	const handleTimeChange = useCallback(
 		(event: ChangeEvent<HTMLInputElement>) => {
-			const time = event.target.value;
+			const time = normalizeTimeInput(event.target.value);
+			setTimeValue(time);
 			if (!date || !isValid(date)) {
-				setTimeValue(time);
-				return toast.warning(t("date_time_picker.empty_date"));
+				return;
 			}
 
 			const { hours, minutes, seconds } = parseTimeParts(time);
-			const newSelectedDate = setHours(setMinutes(setSeconds(date, seconds), minutes), hours);
+			const newSelectedDate = new Date(
+				date.getFullYear(),
+				date.getMonth(),
+				date.getDate(),
+				hours,
+				minutes,
+				seconds
+			);
 			if (!isValid(newSelectedDate)) return;
 			setDate(newSelectedDate);
-			setTimeValue(time);
 			onSelectDateTime(format(newSelectedDate, resolvedFormatDateTime));
 		},
-		[date, onSelectDateTime, parseTimeParts, resolvedFormatDateTime, setDate, setTimeValue, t]
+		[date, normalizeTimeInput, onSelectDateTime, parseTimeParts, resolvedFormatDateTime]
 	);
 
 	/**
@@ -125,10 +180,18 @@ const DateTimePicker = ({
 				return;
 			}
 			setDate(newDate);
-			setTimeValue("");
+			setTimeValue(normalizeTimeInput(format(newDate, timeFormat)));
 			onSelectDateTime(format(newDate, resolvedFormatDateTime));
 		},
-		[onSelectDateTime, parseTimeParts, resolvedFormatDateTime, setDate, timeValue]
+		[
+			normalizeTimeInput,
+			onSelectDateTime,
+			parseTimeParts,
+			resolvedFormatDateTime,
+			setDate,
+			timeFormat,
+			timeValue,
+		]
 	);
 
 	/**
@@ -173,6 +236,7 @@ const DateTimePicker = ({
 		setTimeValue(format(now, timeFormat));
 		onSelectDateTime(format(now, resolvedFormatDateTime));
 	}, [onSelectDateTime, resolvedFormatDateTime, timeFormat]);
+
 	return (
 		<div className={clsx("grid gap-2", className)}>
 			<Popover>

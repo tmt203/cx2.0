@@ -38,8 +38,18 @@ const CollectionRecordPage = ({
 	recordId,
 	baseRoute,
 }: CollectionRecordPageProps) => {
+	// Hooks
+	const t = useTranslations();
+	const pathname = usePathname();
+	const locale = useLocale();
+	const router = useRouter();
 	const fields = useAppStore((state) => state.fields);
 	const collections = useAppStore((state) => state.collections);
+	const translations = useAppStore((state) => state.translations);
+
+	// States
+
+	const isEditMode = useMemo(() => mode === "edit", [mode]);
 	const collectionFields = useMemo(
 		() => fields.filter((field) => field.collection === collection),
 		[collection, fields]
@@ -48,15 +58,6 @@ const CollectionRecordPage = ({
 		() => collections.find((col) => col.collection === collection),
 		[collection, collections]
 	);
-
-	// Hooks
-	const t = useTranslations();
-	const locale = useLocale();
-	const router = useRouter();
-	const pathname = usePathname();
-	const translations = useAppStore((state) => state.translations);
-
-	const isEditMode = mode === "edit";
 	const resolvedBaseRoute = useMemo(() => {
 		if (baseRoute) return baseRoute;
 		if (isEditMode) {
@@ -65,7 +66,6 @@ const CollectionRecordPage = ({
 		}
 		return pathname.replace(/\/new$/, "");
 	}, [baseRoute, isEditMode, pathname]);
-
 	const collectionLabel = useMemo(() => {
 		const normalizedLocale = locale.toLowerCase();
 		const translationsMeta = currentCollection?.meta?.translations;
@@ -78,7 +78,6 @@ const CollectionRecordPage = ({
 			collection
 		);
 	}, [collection, currentCollection, locale]);
-
 	const visibleFields = useMemo(() => {
 		return [...collectionFields]
 			.filter((field) => !isGeneratedField(field))
@@ -88,7 +87,6 @@ const CollectionRecordPage = ({
 				return Number(aMeta.order ?? aMeta.sort ?? 0) - Number(bMeta.order ?? bMeta.sort ?? 0);
 			});
 	}, [collectionFields]);
-
 	const fieldLabels = useMemo(() => {
 		const normalizedLocale = locale.toLowerCase();
 		return visibleFields.reduce<Record<string, string>>((result, field) => {
@@ -100,7 +98,6 @@ const CollectionRecordPage = ({
 			return result;
 		}, {});
 	}, [locale, visibleFields]);
-
 	const translationMap = useMemo(() => {
 		const normalizedLocale = locale.toLowerCase();
 		return translations.reduce<Record<string, string>>((result, item) => {
@@ -110,13 +107,13 @@ const CollectionRecordPage = ({
 			return result;
 		}, {});
 	}, [locale, translations]);
-
 	const defaultInitialValues = useMemo(() => {
 		return visibleFields.reduce<Record<string, unknown>>((result, field) => {
 			result[field.field] = getInitialValue(field);
 			return result;
 		}, {});
 	}, [visibleFields]);
+	
 	const [initialValues, setInitialValues] = useState<Record<string, unknown>>(defaultInitialValues);
 
 	const validationSchema = useMemo(() => {

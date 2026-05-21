@@ -143,7 +143,7 @@ const InputForm = ({
 						id={props.id}
 						placeholder=""
 						type={actualType}
-						value={value}
+						value={value ?? ""}
 						autoComplete="off"
 						readOnly={readOnly}
 						pattern={phoneNumberPattern}
@@ -232,7 +232,7 @@ const InputForm = ({
 						<input
 							{...props}
 							type={actualType}
-							value={value}
+							value={value ?? ""}
 							autoComplete="off"
 							readOnly={readOnly}
 							pattern={phoneNumberPattern}
