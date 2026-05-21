@@ -232,7 +232,7 @@ const SelectForm = ({
 								value={value}
 								disabled={disabled}
 								className={clsx("form-select w-full py-0.5", {
-									"italic text-gray-300": !value?.toString(),
+									"italic text-gray-400 dark:text-gray-500": !value?.toString(),
 									"border-danger-500 hover:!border-danger-300 focus:!border-danger-500 dark:border-danger-500":
 										errorMessage || state === "error",
 									"border-success-500 hover:!border-success-300 focus:!border-success-500 dark:border-success-500":

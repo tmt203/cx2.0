@@ -99,9 +99,6 @@
 		"account_info": "Account Info",
 		"logout": "Logout"
 	},
-	"input": {
-		"placeholder": "Enter {data}..."
-	},
 	"common_data": {
 		"record": "Record",
 		"lead": "Lead",

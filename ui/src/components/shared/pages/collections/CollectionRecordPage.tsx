@@ -2,6 +2,8 @@
 
 import { useAppStore } from "@/src/lib/store/appStore";
 import { apiCreateItem, apiGetItemById, apiUpdateItem } from "@api/rest/directus/items.api";
+import DatePicker from "@components/shared/atoms/DatePicker";
+import DateTimePicker from "@components/shared/atoms/DateTimePicker";
 import { Button, InputForm, SelectForm } from "@components/shared/molecules";
 import DefaultPageLayout from "@components/shared/templates/DefaultPageLayout";
 import { SelectOption } from "@type/common.type";
@@ -264,6 +266,7 @@ const CollectionRecordPage = ({
 		const error = formik.errors[fieldName];
 		const errorMessage = touched && typeof error === "string" ? error : "";
 		const errorMessageValues = { data: label };
+		const resolvedErrorMessage = errorMessage ? t(errorMessage, errorMessageValues) : "";
 		const commonProps = {
 			id: fieldName,
 			name: fieldName,
@@ -284,7 +287,7 @@ const CollectionRecordPage = ({
 					key={fieldName}
 					{...commonProps}
 					options={getSelectOptions(field)}
-					placeholder=""
+					placeholder={t("select.placeholder", { data: label.toLowerCase() })}
 				/>
 			);
 		}
@@ -324,26 +327,79 @@ const CollectionRecordPage = ({
 						onBlur={formik.handleBlur}
 					/>
 					{errorMessage ? (
-						<p className="pl-4 text-xs italic text-danger-500">
-							{t(errorMessage, errorMessageValues)}
-						</p>
+						<p className="pl-4 text-xs italic text-danger-500">{resolvedErrorMessage}</p>
+					) : null}
+				</div>
+			);
+		}
+
+		if (field.type === "date") {
+			return (
+				<div key={fieldName} className="flex w-full flex-col gap-1">
+					<label className="flex text-base font-semibold" htmlFor={fieldName}>
+						{label}
+						{meta.required ? <span className="ml-1 text-danger-500">*</span> : null}
+					</label>
+					<div className="pl-4">
+						<DatePicker
+							date={value || undefined}
+							disabled={meta.readonly}
+							errorMessage={errorMessage}
+							formatDate="yyyy-MM-dd"
+							onSelectDate={(nextValue) => {
+								formik.setFieldValue(fieldName, nextValue);
+								formik.setFieldTouched(fieldName, true, false);
+							}}
+						/>
+					</div>
+					{errorMessage ? (
+						<p className="pl-4 text-xs italic text-danger-500">{resolvedErrorMessage}</p>
+					) : null}
+				</div>
+			);
+		}
+
+		if (["dateTime", "datetime", "timestamp"].includes(field.type)) {
+			return (
+				<div key={fieldName} className="flex w-full flex-col gap-1">
+					<label className="flex text-base font-semibold" htmlFor={fieldName}>
+						{label}
+						{meta.required ? <span className="ml-1 text-danger-500">*</span> : null}
+					</label>
+					<div className="pl-4">
+						<DateTimePicker
+							time={value || undefined}
+							disabled={meta.readonly}
+							errorMessage={errorMessage}
+							formatDateTime="yyyy-MM-dd'T'HH:mm"
+							onSelectDateTime={(nextValue) => {
+								formik.setFieldValue(fieldName, nextValue);
+								formik.setFieldTouched(fieldName, true, false);
+							}}
+						/>
+					</div>
+					{errorMessage ? (
+						<p className="pl-4 text-xs italic text-danger-500">{resolvedErrorMessage}</p>
 					) : null}
 				</div>
 			);
 		}
 
 		const inputType =
-			field.type === "date"
-				? "date"
-				: field.type === "time"
-					? "time"
-					: ["dateTime", "datetime", "timestamp"].includes(field.type)
-						? "datetime-local"
-						: ["integer", "bigInteger", "float", "decimal"].includes(field.type)
-							? "number"
-							: "text";
+			field.type === "time"
+				? "time"
+				: ["integer", "bigInteger", "float", "decimal"].includes(field.type)
+					? "number"
+					: "text";
 
-		return <InputForm key={fieldName} {...commonProps} type={inputType} />;
+		return (
+			<InputForm
+				key={fieldName}
+				{...commonProps}
+				type={inputType}
+				placeholder={t("input.placeholder", { data: label.toLowerCase() })}
+			/>
+		);
 	};
 
 	return (
@@ -362,10 +418,11 @@ const CollectionRecordPage = ({
 				{visibleFields.map(renderField)}
 			</form>
 			<div className="flex-end mt-4 flex justify-end gap-2">
-				<Button variant="secondary" onClick={() => router.push(resolvedBaseRoute)}>
+				<Button variant="surface" onClick={() => router.push(resolvedBaseRoute)}>
 					{t("form.cancel")}
 				</Button>
 				<Button
+					variant="primary"
 					onClick={() => formik.handleSubmit()}
 					state={formik.isSubmitting ? "loading" : "default"}
 				>

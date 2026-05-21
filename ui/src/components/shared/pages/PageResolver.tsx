@@ -39,21 +39,26 @@ const getRouteCandidates = (route: string) => {
  * @param route string
  */
 const getMatchedPage = async (route: string) => {
-	const candidates = getRouteCandidates(route);
+	try {
+		const candidates = getRouteCandidates(route);
 
-	for (const candidate of candidates) {
-		const response = await apiGetUIPages({ ["filter[route][_eq]"]: candidate, limit: 1 });
-		const page = response?.data?.[0];
+		for (const candidate of candidates) {
+			const response = await apiGetUIPages({ ["filter[route][_eq]"]: candidate, limit: 1 });
+			const page = response?.data?.[0];
 
-		if (page) {
-			return {
-				page,
-				matchedRoute: candidate,
-			};
+			if (page) {
+				return {
+					page,
+					matchedRoute: candidate,
+				};
+			}
 		}
-	}
 
-	return null;
+		return null;
+	} catch (error) {
+		console.error("Failed to fetch ui_pages in SSR", error);
+		return null;
+	}
 };
 
 /**
@@ -75,9 +80,6 @@ const PageResolver = async ({ slug }: PageResolverProps) => {
 	const route = normalizeRoute(slug);
 	const matched = await getMatchedPage(route);
 
-	console.log("route:", route);
-	console.log("matched:", matched);
-
 	if (!matched || matched.page.is_enabled === false) notFound();
 
 	const { page, matchedRoute } = matched;
@@ -89,9 +91,6 @@ const PageResolver = async ({ slug }: PageResolverProps) => {
 		const recordId = collectionFromPage ? trailingSegments[0] : trailingSegments[1];
 		const isCreate = recordId === "new";
 		const baseRoute = collectionFromPage ? matchedRoute : `${matchedRoute}/${collection}`;
-
-		console.log("collection:", collection);
-		console.log("recordId:", recordId);
 
 		if (!collection) notFound();
 		if (isCreate) {

@@ -281,7 +281,7 @@ const CollectionPage = ({ collection }: CollectionPageProps) => {
 					{/* Area: Right Action */}
 					<div className="flex gap-2">
 						{/* Area: Add List */}
-						<Button size="sm" onClick={handleAddRecord}>
+						<Button variant="primary" size="sm" onClick={handleAddRecord}>
 							{t("action.add_record")}
 						</Button>
 					</div>
@@ -303,7 +303,7 @@ const CollectionPage = ({ collection }: CollectionPageProps) => {
 							{
 								label: "form.edit",
 								icon: <PencilLine size={16} />,
-								className: "text-primary-500",
+								className: "text-secondary-500",
 								onClick: handleEditRecordModalOpen,
 							},
 							{

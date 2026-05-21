@@ -516,7 +516,7 @@
                 >
               </div>
               <div class="card span-3 kpi">
-                <strong>130</strong>
+                <strong>131</strong>
                 <span>file source chính trong <code>ui/src</code></span>
               </div>
               <div class="card span-3 kpi">
@@ -572,7 +572,7 @@
                 <span class="tag">5</span>
                 <b>Render page</b>
                 <p>
-                  <code>collection</code> render CRUD table;
+                  <code>collection</code> render list hoặc record form;
                   <code>custom</code> render qua registry.
                 </p>
               </div>
@@ -666,7 +666,9 @@
                       <h3><code>PageResolver.tsx</code></h3>
                       <p>
                         Normalize route, thử các route candidate, gọi Directus
-                        <code>ui_pages</code>.
+                        <code>ui_pages</code>, rồi dùng trailing segments để
+                        phân biệt list, create <code>/new</code> và edit
+                        <code>/:id</code>.
                       </p>
                     </div>
                   </div>
@@ -686,8 +688,14 @@
                   <tbody>
                     <tr>
                       <td><code>collection</code></td>
-                      <td>Cần <code>collection_key</code></td>
-                      <td><code>CollectionPage</code></td>
+                      <td>
+                        Cần <code>collection_key</code> hoặc collection từ
+                        trailing segment
+                      </td>
+                      <td>
+                        <code>CollectionPage</code> hoặc
+                        <code>CollectionRecordPage</code>
+                      </td>
                     </tr>
                     <tr>
                       <td><code>custom</code></td>
@@ -838,8 +846,8 @@
                 <h3 class="badge-amber">Pages</h3>
                 <p>
                   <code>PageResolver</code> là lớp điều phối. Page cụ thể gồm
-                  <code>DashboardPage</code> và <code>CollectionPage</code>;
-                  custom page mới cần đăng ký trong
+                  <code>DashboardPage</code>, <code>CollectionPage</code> và
+                  <code>CollectionRecordPage</code>; custom page mới cần đăng ký trong
                   <code>customPageRegistry.ts</code>.
                 </p>
               </div>
@@ -847,7 +855,7 @@
           </section>
 
           <section id="collection" class="section">
-            <h2>Collection Page CRUD</h2>
+            <h2>Collection List & Record CRUD</h2>
             <div class="grid">
               <div class="card span-7">
                 <h3>Luồng dữ liệu</h3>
@@ -858,8 +866,9 @@
                       <h3>Metadata từ store</h3>
                       <p>
                         Fields, collections và translations được load một lần ở layout.
-                        <code>CollectionPage</code>
-                        lọc fields theo collection hiện tại.
+                        <code>CollectionPage</code> và
+                        <code>CollectionRecordPage</code> lọc fields theo collection
+                        hiện tại.
                       </p>
                     </div>
                   </div>
@@ -891,9 +900,11 @@
                     <div>
                       <h3>Create/Edit/Delete</h3>
                       <p>
-                        <code>AddRecordModal</code> dùng Formik/Yup và field
-                        metadata. Delete dùng <code>ConfirmModal</code>, sau đó
-                        reload total và table.
+                        Add/Edit chuyển route sang <code>/new</code> hoặc
+                        <code>/:id</code> và render
+                        <code>CollectionRecordPage</code>. Delete vẫn chạy trong
+                        list bằng <code>ConfirmModal</code>, sau đó reload total
+                        và table.
                       </p>
                     </div>
                   </div>
@@ -901,7 +912,7 @@
               </div>
 
               <div class="card span-5">
-                <h3>Form động trong <code>AddRecordModal</code></h3>
+                <h3>Form động trong <code>CollectionRecordPage</code></h3>
                 <table>
                   <thead>
                     <tr>
@@ -943,6 +954,18 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              <div class="card span-12 callout">
+                <h3>Route record</h3>
+                <p>
+                  <code>PageResolver</code> lấy route khớp dài nhất từ
+                  <code>ui_pages</code>, sau đó đọc trailing segments. Với page
+                  collection có <code>collection_key</code>, <code>/new</code>
+                  render create form và <code>/:id</code> render edit form. Nếu
+                  page không có <code>collection_key</code>, segment đầu tiên
+                  sau matched route được dùng làm collection key.
+                </p>
               </div>
             </div>
           </section>
@@ -1092,7 +1115,9 @@
                   <li>
                     Page collection: tạo record <code>ui_pages</code> với
                     <code>page_type=collection</code> và
-                    <code>collection_key</code>.
+                    <code>collection_key</code>. List route sẽ render
+                    <code>CollectionPage</code>; <code>/new</code> và
+                    <code>/:id</code> sẽ render <code>CollectionRecordPage</code>.
                   </li>
                   <li>
                     Page custom: tạo component, export trong
